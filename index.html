@@ -77,6 +77,9 @@ header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background
 .sync{font-size:11px;opacity:.8;white-space:nowrap}
 
 main{padding-block:16px 96px}
+.banner.alert{background:var(--nudge-soft);border:1px solid var(--nudge)}
+.banner.alert strong{color:var(--nudge)}
+.banner.alert a{color:var(--accent)}
 .banner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--accent-soft);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;font-size:14px}
 .btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:600;font-size:14px}
 .btn:hover{border-color:var(--accent)}
@@ -390,7 +393,7 @@ const Sync={
   soon(){if(!this.on())return;clearTimeout(this.t);this.t=setTimeout(()=>this.run(),3000);},
   async api(path,opt={}){
     const r=await fetch("https://api.github.com"+path,Object.assign({},opt,{headers:Object.assign({"Accept":"application/vnd.github+json","Authorization":"Bearer "+this.cfg.token},opt.body?{"Content-Type":"application/json"}:{})}));
-    if(r.status===401)throw new Error("GitHub didn't accept the token. Make a new one and connect again.");
+    if(r.status===401){const e=new Error("Your GitHub sync key has expired or was turned off. Make a new one below. Nothing on this device is lost.");e.auth=true;throw e;}
     if(r.status===404)throw new Error("Your sync file wasn't found on GitHub.");
     if(!r.ok)throw new Error("GitHub said "+r.status+". Try again in a minute.");
     return r.status===204?null:r.json();
@@ -398,18 +401,45 @@ const Sync={
   async readRemote(){const g=await this.api("/gists/"+this.cfg.gist);const f=g.files&&g.files[FILE];if(!f)return null;
     let txt=f.content;if(f.truncated){const r=await fetch(f.raw_url);txt=await r.text();}
     try{return JSON.parse(txt);}catch(e){return null;}},
-  async writeRemote(payload){await this.api("/gists/"+this.cfg.gist,{method:"PATCH",body:JSON.stringify({files:{[FILE]:{content:payload}}})});},
+  // Every write carries this device's stamp, the list of your devices, and a check code over the data.
+  wrap(dataStr,remote){
+    const me=Device.get(),now=nowISO();
+    const devices=Object.assign({},(remote&&remote.devices)||{});
+    devices[me.id]=Object.assign({first:now},devices[me.id],{name:me.name,last:now});
+    const o=JSON.parse(dataStr);o.devices=devices;o.stamp={id:me.id,name:me.name,at:now};o.sig=fnv(dataStr);
+    this.cfg.sigSeen=true;this.cfg.seen=Object.assign({},this.cfg.seen,{[me.id]:me.name});this.cfg.devices=devices;this.save();
+    return JSON.stringify(o);
+  },
+  async writeRemote(dataStr,remote){await this.api("/gists/"+this.cfg.gist,{method:"PATCH",body:JSON.stringify({files:{[FILE]:{content:this.wrap(dataStr,remote)}}})});},
+  // Look at who last changed the file. Raises a warning for anything that isn't one of your devices.
+  inspect(remote,first){
+    if(!remote||!remote.settings)return;
+    const seen=Object.assign({},this.cfg.seen),me=Device.get().id,devs=remote.devices||{},st=remote.stamp;
+    const dataStr=JSON.stringify(normalize(remote));
+    if(remote.sig&&fnv(dataStr)!==remote.sig)Alerts.add("edit","Your RTD file was edited outside the RTD app (for example on the GitHub website).",remote);
+    else if(!remote.sig&&this.cfg.sigSeen)Alerts.add("edit","Your RTD file was changed without a device stamp. Something other than your RTD app wrote it.",remote);
+    else if(st&&!devs[st.id])Alerts.add("edit",`Your RTD was changed by "${st.name||"an unknown device"}", which isn't on your device list.`,remote);
+    for(const [id,d] of Object.entries(devs)){if(id===me||seen[id])continue;
+      if(!first)Alerts.add("device",`A new device joined your sync: "${d.name||"unnamed"}" on ${fmtShort(d.first||nowISO())}.`,remote,id);
+      seen[id]=d.name||"device";}
+    this.cfg.seen=seen;this.cfg.devices=devs;if(remote.sig)this.cfg.sigSeen=true;this.save();
+  },
   async connect(token){
-    this.cfg={token:token.trim()};this.state="busy";render();
+    // keep what this device already knows about your devices, so a key swap doesn't reset the warnings
+    const keep=this.cfg||this.prev||{};this.cfg={token:token.trim(),seen:keep.seen||{},sigSeen:!!keep.sigSeen};this.state="busy";render();
     try{
       // look for an existing RTD gist first, so a second device picks up the same data
       let found=null;for(let page=1;page<=5&&!found;page++){const list=await this.api("/gists?per_page=100&page="+page);found=list.find(g=>g.description===DESC&&g.files&&g.files[FILE]);if(list.length<100)break;}
       if(found){this.cfg.gist=found.id;this.save();const remote=await this.readRemote();
-        if(remote&&remote.settings){adopt(remote);toast("Loaded your synced RTD");}
-        else await this.writeRemote(serialize());}
-      else{const g=await this.api("/gists",{method:"POST",body:JSON.stringify({description:DESC,public:false,files:{[FILE]:{content:serialize()}}})});this.cfg.gist=g.id;this.save();toast("Sync is on");}
-      this.state="ok";this.last=new Date();this.err="";
-    }catch(e){this.cfg=null;this.save();this.state="error";this.err=e.message||"Couldn't reach GitHub.";}
+        // a fresh device (only examples) takes the synced copy; a device with real entries merges, so a new key never loses work
+        const onlyExamples=[...S.items.values(),...S.events.values()].every(x=>x.example);
+        // a reconnect (new key on a device that synced before) checks for changes as usual; a brand-new device trusts what's there
+        this.inspect(remote,!this.cfg.seen||!Object.keys(this.cfg.seen).length);
+        if(remote&&remote.settings){if(onlyExamples){adopt(remote);toast("Loaded your synced RTD");}else{mergeIn(remote);saveLocal();toast("Sync is back on");}}
+        await this.writeRemote(serialize(),remote);}
+      else{this.cfg.gist=null;const g=await this.api("/gists",{method:"POST",body:JSON.stringify({description:DESC,public:false,files:{[FILE]:{content:this.wrap(serialize(),null)}}})});this.cfg.gist=g.id;this.save();toast("Sync is on");}
+      this.state="ok";this.last=new Date();this.err="";this.authFail=false;
+    }catch(e){this.prev=this.cfg;this.cfg=null;this.save();this.state="error";this.authFail=false;this.err=e.auth?"GitHub didn't accept that key. Check you copied all of it and that 'gist' was ticked.":(e.message||"Couldn't reach GitHub.");}
     render();
   },
   disconnect(){this.cfg=null;this.save();this.state="off";this.err="";render();},
@@ -420,20 +450,46 @@ const Sync={
     try{
       const remote=await this.readRemote();
       const before=serialize();
+      if(remote)this.inspect(remote,false);
       if(remote&&remote.settings)mergeIn(remote);
       const after=serialize();
       const remoteTxt=remote?JSON.stringify(normalize(remote)):"";
-      if(after!==remoteTxt)await this.writeRemote(after);
+      const me=Device.get();const listed=remote&&remote.devices&&remote.devices[me.id];
+      if(after!==remoteTxt||!listed||listed.name!==me.name||!remote.sig)await this.writeRemote(after,remote);
+      if(remote&&remote.stamp){this.cfg.lastStamp=remote.stamp.at;this.save();}
       if(after!==before){saveLocal();scheduleRender();}
-      this.state="ok";this.last=new Date();this.err="";
-    }catch(e){this.state="error";this.err=e.message||"Couldn't reach GitHub.";}
+      this.state="ok";this.last=new Date();this.err="";this.authFail=false;
+    }catch(e){const was=this.authFail;this.state="error";this.err=e.message||"Couldn't reach GitHub.";this.authFail=!!e.auth;if(e.auth&&!was){toast("Sync key expired. Your entries are safe. Open Setup to add a new key.");scheduleRender();}}
     this.busy=false;render0();
     if(this.again){this.again=false;this.run();}
   }
 };
+// A short check code over the data, so a hand edit of the file shows up.
+function fnv(str){let h=0x811c9dc5;for(let i=0;i<str.length;i++){h^=str.charCodeAt(i);h=Math.imul(h,0x01000193)>>>0;}return h.toString(16).padStart(8,"0");}
+// This device's own id and name, kept on the device.
+const Device={
+  key:"rtd2.device",
+  guess(){const ua=navigator.userAgent||"";if(/iPhone/.test(ua))return "iPhone";if(/iPad/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1))return "iPad";if(/Macintosh/.test(ua))return "MacBook";if(/Android/.test(ua))return "Android phone";if(/Windows/.test(ua))return "Windows PC";return "This device";},
+  get(){if(this._d)return this._d;let d=null;try{d=JSON.parse(localStorage.getItem(this.key)||"null");}catch(e){}
+    if(!d||!d.id){d={id:"d"+uid().slice(0,12),name:this.guess()};try{localStorage.setItem(this.key,JSON.stringify(d));}catch(e){}}
+    return this._d=d;},
+  rename(n){const d=this.get();d.name=n.trim().slice(0,40)||this.guess();try{localStorage.setItem(this.key,JSON.stringify(d));}catch(e){}Sync.soon();}
+};
+// Warnings about changes that didn't come from your devices. Kept on this device until you dismiss them.
+const Alerts={
+  key:"rtd2.alerts",
+  list:(()=>{try{return JSON.parse(localStorage.getItem("rtd2.alerts")||"[]");}catch(e){return [];}})(),
+  save(){try{localStorage.setItem(this.key,JSON.stringify(this.list));}catch(e){}},
+  add(kind,text,remote,ref){const id=kind+":"+(ref||(remote&&remote.stamp&&remote.stamp.at)||(remote&&remote.sig)||"x");
+    if(this.list.some(a=>a.id===id)||(this.dismissed().includes(id)))return;
+    this.list.push({id,kind,text,at:nowISO()});this.save();toast(kind==="device"?"A new device joined your sync":"Your RTD was changed from somewhere unexpected");scheduleRender();},
+  dismissed(){try{return JSON.parse(localStorage.getItem("rtd2.alerts.done")||"[]");}catch(e){return [];}},
+  dismiss(id){const d=this.dismissed();d.push(id);try{localStorage.setItem("rtd2.alerts.done",JSON.stringify(d.slice(-200)));}catch(e){}this.list=this.list.filter(a=>a.id!==id);this.save();}
+};
 // small status refresh that doesn't disturb typing
 function render0(){const el=document.getElementById("syncstat");if(el)el.textContent=syncLabel();}
 function syncLabel(){if(!Sync.on())return Sync.state==="busy"?"Connecting…":"Not synced · this device only";
+  if(Sync.authFail)return "Sync key expired · see Setup";
   return ({busy:"Syncing…",offline:"Offline · will sync later",error:"Sync problem · see Setup",ok:"Synced "+(Sync.last?fmtTime(Sync.last.toISOString()):"")})[Sync.state]||"Sync on";}
 function normalize(o){const byId=a=>(a||[]).slice().sort((x,y)=>x.id<y.id?-1:1);const w={};for(const k of Object.keys(o.weeks||{}).sort())w[k]=o.weeks[k];const t={};for(const k of Object.keys(o.tomb||{}).sort())t[k]=o.tomb[k];
   return {v:2,settings:o.settings,items:byId(o.items),events:byId(o.events),weeks:w,tomb:t};}
@@ -586,6 +642,9 @@ function render(){
     <nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" aria-selected="${S.view.tab===k}" data-act="tab" data-v="${k}">${l}</button>`).join("")}</nav>
   </div></header><main class="wrap">`;
   const exN=[...S.items.values()].filter(i=>i.example).length+[...S.events.values()].filter(i=>i.example).length;
+  for(const a of Alerts.list)h+=`<div class="banner alert"><div style="display:grid;gap:4px;min-width:0;flex:1 1 260px"><strong>${a.kind==="device"?"New device on your sync":"Unexpected change to your RTD"}</strong><span>${esc(a.text)} <span class="hint">(${fmtShort(a.at)} ${fmtTime(a.at)})</span></span>
+    ${S.view.alertHelp===a.id?`<span class="hint">If it wasn't you: 1) delete your key at <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">github.com/settings/tokens</a> so it stops working right away; 2) make a new key and paste it into Setup on your own devices; 3) look over your list, and check "Revisions" on your gist at gist.github.com to see what changed.</span>`:""}</div>
+    <span class="actions"><button class="btn small" data-act="alertok" data-v="${esc(a.id)}">${S.view.alertHelp===a.id?"Done":"That was me"}</button>${S.view.alertHelp===a.id?"":`<button class="btn small danger" data-act="alerthelp" data-v="${esc(a.id)}">It wasn't me</button>`}</span></div>`;
   if(exN)h+=`<div class="banner"><span>You're looking at ${exN} example items so you can see how the RTD works. Add your own anytime.</span><button class="btn small" data-act="clearex">Clear examples</button></div>`;
   h+=({list:renderList,days:renderDays,journal:renderJournal,patterns:renderPatterns,assist:renderAssist})[S.view.tab](wk);
   h+=`</main>`;
@@ -781,6 +840,26 @@ function renderSettings(){
   const counts={};for(const it of S.items.values())counts[it.block]=(counts[it.block]||0)+1;
   return `<div class="sheet" data-act="sheetbg"><div class="inner" role="dialog" aria-label="Setup">
    <h2>Setup <button class="btn" data-act="closeset">Done</button></h2>
+   <div class="panel set"><h3>Sync your iPhone and MacBook</h3>
+    ${Sync.on()?`<p style="margin:0">${Sync.authFail?"<strong>Sync is paused.</strong> Your entries keep saving on this device.":`<strong>Sync is on.</strong> ${esc(syncLabel())}. Your RTD is kept in a secret file in your GitHub account.`}</p>
+      ${Sync.err?`<p class="hint" style="color:var(--nudge);margin:0">${esc(Sync.err)}</p>`:""}
+      ${Sync.authFail?`<p class="hint" style="margin:0">Make a new key on <a href="https://github.com/settings/tokens/new?scopes=gist&description=RTD%20sync" target="_blank" rel="noopener">this GitHub page</a> the same way as before, then paste it here. Your entries stay put and merge with your synced copy.</p>
+      <form class="logadd" data-act="syncform"><input id="synctoken" type="password" autocomplete="off" placeholder="Paste your new GitHub key" aria-label="New GitHub key"><button class="btn primary">Reconnect</button></form>`:""}
+      <label class="field"><span>This device is called</span><input id="devname" data-f="devname" value="${esc(Device.get().name)}" maxlength="40"></label>
+      <div class="field"><span>Devices on your sync</span><ul class="list">${Object.entries(Sync.cfg.devices||{}).map(([id,d])=>`<li style="grid-template-columns:minmax(0,1fr) auto"><span>${esc(d.name||"Unnamed")}${id===Device.get().id?" <span class='hint'>(this one)</span>":""}</span><span class="hint">last sync ${d.last?fmtShort(d.last)+" "+fmtTime(d.last):"–"}</span></li>`).join("")||`<li class="hint">Appears after the first sync.</li>`}</ul>
+        <p class="hint" style="margin:4px 0 0">Each sync is stamped with the device that made it. You'll get a warning at the top of the app if your file is changed by anything else or a new device joins. Someone only reading your file can't be detected.</p></div>
+      <div class="actions"><button class="btn" data-act="syncnow">Sync now</button><button class="btn" data-act="syncoff">Turn off sync on this device</button></div>`
+    :`<p class="hint" style="margin:0">Right now everything is saved on this device only. To see the same RTD on every device, connect it to your GitHub account once on each device. It's free. Your data goes in a secret file in your GitHub account: it never shows up publicly, though anyone given its exact link could read it, so keep passwords out of your RTD.</p>
+      <ol class="hint" style="margin:0;padding-left:20px;display:grid;gap:4px"><li>Open <a href="https://github.com/settings/tokens/new?scopes=gist&description=RTD%20sync" target="_blank" rel="noopener">this GitHub page</a>. It's pre-filled with the name "RTD sync" and only the <strong>gist</strong> box ticked. That key can open your gists and nothing else in your account.</li><li>Set <strong>Expiration</strong> to <strong>90 days</strong> or a custom date up to a year out. GitHub emails you a week before it runs out.</li><li>Tap <strong>Generate token</strong>, copy it (it starts with <code>ghp_</code>) and paste it here. Use the same key on your other devices.</li></ol>
+      <p class="hint" style="margin:0">When it expires, the app tells you. You make a new key the same way and paste it in, and nothing is lost.</p>
+      ${Sync.err?`<p class="hint" style="color:var(--nudge);margin:0">${esc(Sync.err)}</p>`:""}
+      <form class="logadd" data-act="syncform"><input id="synctoken" type="password" autocomplete="off" placeholder="Paste your GitHub token" aria-label="GitHub token"><button class="btn primary" ${Sync.state==="busy"?"disabled":""}>${Sync.state==="busy"?"Connecting…":"Connect"}</button></form>
+      <p class="hint" style="margin:0">If this is your second device, connecting loads the RTD you already have and replaces what's on this device.</p>`}
+   </div>
+   <div class="panel set"><h3>Backup</h3><p class="hint" style="margin:0">Save everything as one file you can keep anywhere, or load a backup back in.</p>
+    <div class="actions"><button class="btn" data-act="export">Export backup</button><label class="btn" for="importfile" style="cursor:pointer">Import backup…</label><input type="file" id="importfile" accept=".json,application/json" hidden></div>
+    ${S.view.importPending?`<div class="banner" style="margin:0"><span>Replace everything on this device with the backup from ${esc(S.view.importPending.when)}?</span><span class="actions"><button class="btn small danger" data-act="importyes">Replace</button><button class="btn small" data-act="importno">Cancel</button></span></div>`:""}
+   </div>
    <div class="panel set"><h3>Blocks</h3><p class="hint" style="margin:0">Your boxes for whatever is on your plate right now. Rename, recolor or reorder them as life changes.</p>
     ${s.blocks.map((b,i)=>`<div class="setrow" style="--bc:var(--c${b.color})"><button class="swatch" data-act="bcolor" data-v="${i}" aria-label="Change color"></button><input id="bn-${b.id}" data-f="bname" data-v="${i}" value="${esc(b.name)}" aria-label="Block name"><div class="mini"><button data-act="bup" data-v="${i}" aria-label="Move up" ${i===0?"disabled":""}>↑</button><button data-act="bdown" data-v="${i}" aria-label="Move down" ${i===s.blocks.length-1?"disabled":""}>↓</button><button data-act="bdel" data-v="${i}" aria-label="Remove block" title="${counts[b.id]?"Move or delete its items first":"Remove"}" ${counts[b.id]||s.blocks.length===1?"disabled":""}>✕</button></div></div>`).join("")}
     <div><button class="btn small" data-act="badd">+ Add a block</button></div></div>
@@ -794,20 +873,6 @@ function renderSettings(){
     <div class="setrow pr hint"><span>Name</span><span>From</span><span>To</span><span></span></div>
     ${s.periods.map((p,i)=>`<div class="setrow pr"><input id="pn-${p.id}" data-f="pname" data-v="${i}" value="${esc(p.name)}" aria-label="Block name"><input type="time" id="ps-${p.id}" data-f="pstart" data-v="${i}" value="${esc(p.start)}" aria-label="Starts"><input type="time" id="pe-${p.id}" data-f="pend" data-v="${i}" value="${esc(p.end)}" aria-label="Ends"><div class="mini"><button data-act="pup" data-v="${i}" aria-label="Move up" ${i===0?"disabled":""}>↑</button><button data-act="pdown" data-v="${i}" aria-label="Move down" ${i===s.periods.length-1?"disabled":""}>↓</button><button data-act="pdel" data-v="${i}" aria-label="Remove" ${s.periods.length<=1?"disabled":""}>✕</button></div></div>`).join("")}
     <div><button class="btn small" data-act="padd">+ Add a time block</button></div></div>
-   <div class="panel set"><h3>Sync your iPhone and MacBook</h3>
-    ${Sync.on()?`<p style="margin:0"><strong>Sync is on.</strong> ${esc(syncLabel())}. Your RTD is kept in a secret file in your GitHub account.</p>
-      ${Sync.err?`<p class="hint" style="color:var(--nudge);margin:0">${esc(Sync.err)}</p>`:""}
-      <div class="actions"><button class="btn" data-act="syncnow">Sync now</button><button class="btn" data-act="syncoff">Turn off sync on this device</button></div>`
-    :`<p class="hint" style="margin:0">Right now everything is saved on this device only. To see the same RTD on every device, connect it to your GitHub account once on each device. It's free. Your data goes in a secret file in your GitHub account: it never shows up publicly, though anyone given its exact link could read it, so keep passwords out of your RTD.</p>
-      <ol class="hint" style="margin:0;padding-left:20px;display:grid;gap:4px"><li>Open <a href="https://github.com/settings/tokens/new?scopes=gist&description=RTD%20sync" target="_blank" rel="noopener">this GitHub page</a> (it's pre-filled).</li><li>Set <strong>Expiration</strong> to "No expiration", leave only <strong>gist</strong> ticked, and tap <strong>Generate token</strong>.</li><li>Copy the token (starts with <code>ghp_</code>) and paste it here. Use the same token on your other devices.</li></ol>
-      ${Sync.err?`<p class="hint" style="color:var(--nudge);margin:0">${esc(Sync.err)}</p>`:""}
-      <form class="logadd" data-act="syncform"><input id="synctoken" type="password" autocomplete="off" placeholder="Paste your GitHub token" aria-label="GitHub token"><button class="btn primary" ${Sync.state==="busy"?"disabled":""}>${Sync.state==="busy"?"Connecting…":"Connect"}</button></form>
-      <p class="hint" style="margin:0">If this is your second device, connecting loads the RTD you already have and replaces what's on this device.</p>`}
-   </div>
-   <div class="panel set"><h3>Backup</h3><p class="hint" style="margin:0">Save everything as one file you can keep anywhere, or load a backup back in.</p>
-    <div class="actions"><button class="btn" data-act="export">Export backup</button><label class="btn" for="importfile" style="cursor:pointer">Import backup…</label><input type="file" id="importfile" accept=".json,application/json" hidden></div>
-    ${S.view.importPending?`<div class="banner" style="margin:0"><span>Replace everything on this device with the backup from ${esc(S.view.importPending.when)}?</span><span class="actions"><button class="btn small danger" data-act="importyes">Replace</button><button class="btn small" data-act="importno">Cancel</button></span></div>`:""}
-   </div>
   </div></div>`;
 }
 
@@ -855,6 +920,8 @@ document.addEventListener("click",e=>{
     case "pdf":makePdf();return;
     case "copyweek":{const txt="My running to-do list (RTD). Help me think it through.\n\n"+weekContext(curWk());try{navigator.clipboard.writeText(txt).then(()=>toast("Week copied. Paste it anywhere."),()=>toast("Couldn't copy on this device"));}catch(_){toast("Couldn't copy on this device");}return;}
     case "syncnow":Sync.run();return;
+    case "alertok":Alerts.dismiss(v);S.view.alertHelp=null;break;
+    case "alerthelp":S.view.alertHelp=v;break;
     case "syncoff":Sync.disconnect();toast("Sync is off on this device. Your data stays here.");return;
     case "export":saveFile(`RTD backup ${dkey(new Date())}.json`,serialize());toast("Backup saved");return;
     case "importyes":adopt(S.view.importPending.data);S.view.importPending=null;if(Sync.on())Sync.soon();toast("Backup loaded");break;
@@ -974,6 +1041,7 @@ document.addEventListener("change",e=>{
     case "sdate":if(!el.value){delete it.sched;}else{it.sched={date:el.value,period:$("#f-sh-"+it.id).value};}saveItem(it);break;
     case "speriod":{const sel=$("#f-sd-"+it.id);if(!sel.value)return;it.sched={date:sel.value,period:el.value};saveItem(it);break;}
     case "occnote":{const V=S.view.ev,sv=V&&S.events.get(V.id);if(sv)setOcc(sv,V.date,{note:el.value.trim()});return;}
+    case "devname":Device.rename(el.value);break;
     case "pname":st().periods[+v].name=el.value.trim()||"Block";saveSettings();break;
     case "pstart":if(el.value){st().periods[+v].start=el.value;saveSettings();}break;
     case "pend":if(el.value){st().periods[+v].end=el.value;saveSettings();}break;
