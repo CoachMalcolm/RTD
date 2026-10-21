@@ -18,7 +18,13 @@ Open that address in **Safari**, tap **Share**, then **Add to Home Screen**.
 
 ## Sync iPhone and MacBook
 
-In the app, tap ⚙ and find **Sync your iPhone and MacBook**. Follow the three steps to make a GitHub token (gist access only), paste it in, and tap **Connect**. Do the same on your other device with the same token. The second device loads the RTD you already have.
+In the app, tap ⚙ and find **Sync your iPhone and MacBook**. Follow the three steps to make a GitHub key (a "token" with gist access only), paste it in, and tap **Connect**. Do the same on your other device with the same key. The second device loads the RTD you already have.
+
+Give the key an expiration: 90 days, or a custom date up to a year out. GitHub emails you before it runs out. When it expires, the app shows "Sync key expired". Make a new key the same way and paste it into Setup on each device. Your entries stay on the device and merge back in, so nothing is lost.
+
+Each sync is stamped with the device that made it (rename devices in Setup). The app warns you at the top of the screen if your file is changed by anything other than your devices, edited by hand on GitHub, or joined by a new device. If a warning wasn't you, delete the key at github.com/settings/tokens and make a new one. Someone who only reads the file can't be detected.
+
+Tip: add a yearly event in the RTD itself ("Renew RTD sync key") with a 7-day heads-up.
 
 Your data lives in a secret (unlisted) gist in your account called "RTD 2.0 data". Setup also has **Export backup** if you want a copy of everything as one file.
 
