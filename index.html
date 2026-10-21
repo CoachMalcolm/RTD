@@ -317,6 +317,7 @@ function findLinks(raw){const out=[];const re=/(https?:\/\/[^\s<>"]+)|([\w.+-]+@
 const S={mode:"local",uid:null,isOwner:true,db:null,sample:null,downloads:null,settings:null,items:new Map(),events:new Map(),weeks:new Map(),tomb:{},loaded:false,
   view:{ev:null,wk:null,tab:"list",open:null,day:dkey(new Date()),cell:null,confirm:null,settings:false,draft:{},assist:{},capture:null,quickBlock:null}};
 const LS="rtd2.v1";
+const APP_VERSION="1.2";
 
 function defaultSettings(owner){
   const names=owner?["Training","Madden","Cards","Strength BIBLE","Timer","Daily Dose","Content","Personal"]:["Work","Projects","Personal"];
@@ -873,6 +874,9 @@ function renderSettings(){
     <div class="setrow pr hint"><span>Name</span><span>From</span><span>To</span><span></span></div>
     ${s.periods.map((p,i)=>`<div class="setrow pr"><input id="pn-${p.id}" data-f="pname" data-v="${i}" value="${esc(p.name)}" aria-label="Block name"><input type="time" id="ps-${p.id}" data-f="pstart" data-v="${i}" value="${esc(p.start)}" aria-label="Starts"><input type="time" id="pe-${p.id}" data-f="pend" data-v="${i}" value="${esc(p.end)}" aria-label="Ends"><div class="mini"><button data-act="pup" data-v="${i}" aria-label="Move up" ${i===0?"disabled":""}>↑</button><button data-act="pdown" data-v="${i}" aria-label="Move down" ${i===s.periods.length-1?"disabled":""}>↓</button><button data-act="pdel" data-v="${i}" aria-label="Remove" ${s.periods.length<=1?"disabled":""}>✕</button></div></div>`).join("")}
     <div><button class="btn small" data-act="padd">+ Add a time block</button></div></div>
+   <div class="panel set"><h3>Help</h3>
+    <div class="links" style="font-size:15px;gap:12px"><a href="docs/how-to-use.html" target="_blank" rel="noopener">Tips, tricks &amp; hints</a><a href="docs/troubleshooting.html" target="_blank" rel="noopener">Troubleshooting</a><a href="docs/share-with-friends.html" target="_blank" rel="noopener">Share with a friend</a><a href="docs/privacy-and-security.html" target="_blank" rel="noopener">Privacy</a><a href="CHANGELOG.html" target="_blank" rel="noopener">What's new</a></div>
+    <p class="hint" style="margin:0">RTD version ${APP_VERSION}</p></div>
   </div></div>`;
 }
 

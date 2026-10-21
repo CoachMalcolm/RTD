@@ -1,39 +1,75 @@
-# RTD 2.0 · Running To Do
+# RTD · Running To Do
 
-Your weekly running to-do: repurposable blocks, items that roll forward until you cross them off, wth/wcb waiting states with nudges, time-of-day days, repeating events, a journal and patterns.
+A weekly running to-do list, rebuilt from a paper-and-spreadsheet system used for more than 15 years.
 
-It runs as a free website on GitHub Pages and installs on your iPhone home screen. Nothing here costs money.
+The idea is simple. Everything on your plate lives in a few **blocks**. You **cross things off** instead of deleting them, so the list doubles as a journal. Anything not crossed off **rolls into next week** until it's handled. The rule behind every design choice is **WMtMS: whatever makes the most sense** for what's on your plate right now. Blocks, statuses and the shape of your day can all change as your life does.
 
-## Put it online (one time, on your MacBook)
+**Open the app:** `https://YOUR-USERNAME.github.io/rtd/`
 
-1. Sign in at github.com (or create a free account).
-2. Go to github.com/new. Name the repository `rtd`, keep it **Public**, and click **Create repository**. (The app's code is public. Your data is not stored here.)
-3. On the new repository page, click **uploading an existing file**. Drag in every file from this folder and click **Commit changes**.
-4. Open **Settings → Pages**. Under "Build and deployment", set Source to **Deploy from a branch**, Branch to **main** and **/ (root)**, then click **Save**.
-5. After a minute or two your app is live at `https://YOUR-USERNAME.github.io/rtd/`.
+## What it does
 
-## Put it on your iPhone
+| | |
+|---|---|
+| **List** | Your blocks and their items. Capture bar at the top, Coming up (events and heads-ups) below it. |
+| **Days** | Each day split into time-of-day blocks, with your events and planned items. A week-notes box at the top. |
+| **Journal** | Everything you did this week, by day and time. Printable PDF and "Copy my week as text". |
+| **Patterns** | Your strongest day for finishing things, what keeps rolling, who you're waiting on, progress by block. |
+| **Setup (⚙)** | Sync, backup, blocks, statuses, week start, time-of-day blocks, device names. |
 
-Open that address in **Safari**, tap **Share**, then **Add to Home Screen**.
+- Items carry **WWW notes** (who, where, what, why), a **next action**, a **status** and a **log**.
+- **Waiting states:** wth (waiting to hear back) and wcb (waiting for callback). You can add your own. Each gets a nudge after a set number of days.
+- **Repeating events** with per-date done, skip and note, plus heads-up reminders.
+- **Works offline.** Installs on your phone's home screen. Syncs across devices through your own GitHub account.
 
-## Sync iPhone and MacBook
+## Docs
 
-In the app, tap ⚙ and find **Sync your iPhone and MacBook**. Follow the three steps to make a GitHub key (a "token" with gist access only), paste it in, and tap **Connect**. Do the same on your other device with the same key. The second device loads the RTD you already have.
+- [How to use the RTD: tips, tricks and hints](docs/how-to-use.md)
+- [Share it: email and first-time setup for friends](docs/share-with-friends.md)
+- [Troubleshooting and FAQ](docs/troubleshooting.md)
+- [Privacy and security](docs/privacy-and-security.md)
+- [Feedback log](docs/feedback-log.md): notes for the next round of changes
+- [Changelog](CHANGELOG.md)
 
-Give the key an expiration: 90 days, or a custom date up to a year out. GitHub emails you before it runs out. When it expires, the app shows "Sync key expired". Make a new key the same way and paste it into Setup on each device. Your entries stay on the device and merge back in, so nothing is lost.
+## Host it yourself (one time, on a computer)
 
-Each sync is stamped with the device that made it (rename devices in Setup). The app warns you at the top of the screen if your file is changed by anything other than your devices, edited by hand on GitHub, or joined by a new device. If a warning wasn't you, delete the key at github.com/settings/tokens and make a new one. Someone who only reads the file can't be detected.
+1. Sign in at github.com (a free account is fine).
+2. Go to github.com/new. Name the repository `rtd`, keep it **Public**, and click **Create repository**. Only the app's code is public. Your data is stored separately.
+3. Click **uploading an existing file**. Drag in every file and the `docs` folder, then click **Commit changes**.
+4. Open **Settings → Pages**. Set Source to **Deploy from a branch**, choose **main** and **/ (root)**, and click **Save**.
+5. In a minute or two it's live at `https://YOUR-USERNAME.github.io/rtd/`.
 
-Tip: add a yearly event in the RTD itself ("Renew RTD sync key") with a 7-day heads-up.
+## Sync your devices
 
-Your data lives in a secret (unlisted) gist in your account called "RTD 2.0 data". Setup also has **Export backup** if you want a copy of everything as one file.
+In the app, tap ⚙, then **Sync your iPhone and MacBook**:
 
-## Updating the app later
+1. Follow the link to make a GitHub key. Leave only **gist** ticked and set an expiration (90 days to 1 year).
+2. Paste the key and tap **Connect**.
+3. Do the same on each device with the same key.
 
-Upload the new `index.html` the same way (step 3). Devices pick it up the next time they open the app with a connection.
+When the key expires, the app says so. Make a new key and paste it into the **Reconnect** box. Nothing is lost.
+
+## Updating the app
+
+1. Open the repository on github.com.
+2. Choose **Add file → Upload files**.
+3. Drag in the changed files and click **Commit changes**.
+
+Devices pick up the new version the next time the app opens with a connection. Close and reopen it once if it doesn't show right away.
 
 ## Files
 
-- `index.html` — the whole app
-- `manifest.webmanifest`, `icon-*.png`, `apple-touch-icon.png` — what makes it installable with its own icon
-- `sw.js` — lets the app open with no connection
+| File | What it is |
+|---|---|
+| `index.html` | The whole app |
+| `manifest.webmanifest`, `icon-192.png`, `icon-512.png`, `apple-touch-icon.png` | What makes it installable, with its own icon |
+| `sw.js` | Lets the app open with no connection |
+| `docs/` | Guides |
+| `CHANGELOG.md` | What changed and when |
+
+## Where your data lives
+
+- **On each device:** the browser's storage for this site. It's saved instantly and works offline.
+- **In your GitHub account (if sync is on):** a secret gist named "RTD 2.0 data (do not edit)", holding one file, `rtd-data.json`.
+- **In backups you export:** `RTD backup YYYY-MM-DD.json`.
+
+Nothing is sent anywhere else. There's no server, no account with us, and no tracking.
