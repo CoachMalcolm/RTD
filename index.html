@@ -1,0 +1,1088 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#5f6e83">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="RTD">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>RTD 2.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a weekly planner sheet — slate header band like the original RTD, blocks as repurposable boxes, an hour grid whose rows grow or shrink per day. */
+:root{
+  --bg:#e9eef9;          /* periwinkle frame from the original sheet */
+  --surface:#ffffff;
+  --surface-2:#f4f6fb;
+  --ink:#18202e;
+  --muted:#5b6678;
+  --line:#d3dae8;
+  --band:#5f6e83;        /* slate header band */
+  --band-ink:#ffffff;
+  --accent:#3552c4;      /* pen-ink blue, used for strike-throughs */
+  --accent-soft:#dfe5fb;
+  --wait:#a8620b;
+  --wait-soft:#fbecd5;
+  --nudge:#c0362c;
+  --nudge-soft:#fbe0dd;
+  --ok:#2c7a4b;
+  --c0:#3552c4;--c1:#c0562b;--c2:#2c7a4b;--c3:#8a3fb0;--c4:#a8780b;--c5:#0f7f8c;--c6:#b8366e;--c7:#5f6e83;
+  --display:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:10px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#10141c;--surface:#1a202c;--surface-2:#151a24;--ink:#e7ebf3;--muted:#9aa5b8;--line:#2c3444;
+  --band:#3a4558;--band-ink:#f1f4f9;--accent:#8ea4f5;--accent-soft:#25305a;--wait:#f0b25a;--wait-soft:#3a2c17;
+  --nudge:#ff8a7e;--nudge-soft:#41201d;--ok:#6fcf97;
+  --c0:#8ea4f5;--c1:#f08c5e;--c2:#6fcf97;--c3:#c99af0;--c4:#e8c15a;--c5:#5ccfdc;--c6:#f07fae;--c7:#a3b0c4;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10141c;--surface:#1a202c;--surface-2:#151a24;--ink:#e7ebf3;--muted:#9aa5b8;--line:#2c3444;
+  --band:#3a4558;--band-ink:#f1f4f9;--accent:#8ea4f5;--accent-soft:#25305a;--wait:#f0b25a;--wait-soft:#3a2c17;
+  --nudge:#ff8a7e;--nudge-soft:#41201d;--ok:#6fcf97;
+  --c0:#8ea4f5;--c1:#f08c5e;--c2:#6fcf97;--c3:#c99af0;--c4:#e8c15a;--c5:#5ccfdc;--c6:#f07fae;--c7:#a3b0c4;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.4;font-variant-numeric:tabular-nums}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--band)}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1440px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Header band */
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--band);color:var(--band-ink)}
+.topbar{display:flex;align-items:center;gap:14px;padding-block:10px}
+.wk{font-family:var(--display);font-weight:800;line-height:.85;text-align:center;border:2px solid currentColor;border-radius:6px;padding:4px 8px 3px;min-width:54px}
+.wk small{display:block;font-size:13px;letter-spacing:.08em}
+.wk b{font-size:28px}
+.range{display:flex;flex-direction:column;min-width:0}
+.range strong{font-family:var(--display);font-size:22px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.range span{font-size:12px;opacity:.85}
+.nav{display:flex;gap:4px;margin-left:auto;align-items:center}
+.nav button,.iconbtn{background:transparent;border:1px solid rgba(255,255,255,.35);color:inherit;border-radius:8px;height:34px;min-width:34px;padding:0 10px;font-weight:600}
+.nav button:hover,.iconbtn:hover{background:rgba(255,255,255,.12)}
+.pill-nudge{background:var(--nudge);color:#fff;border:0;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs button{background:transparent;border:0;color:inherit;opacity:.75;padding:8px 14px 10px;font-family:var(--display);font-size:17px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border-bottom:3px solid transparent;white-space:nowrap}
+.tabs button[aria-selected="true"]{opacity:1;border-bottom-color:var(--band-ink)}
+.sync{font-size:11px;opacity:.8;white-space:nowrap}
+
+main{padding-block:16px 96px}
+.banner{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;background:var(--accent-soft);border-radius:var(--r);padding:10px 14px;margin-bottom:14px;font-size:14px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 12px;font-weight:600;font-size:14px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.btn.small{padding:4px 9px;font-size:13px}
+.btn.danger{color:var(--nudge);border-color:var(--nudge)}
+.btn:disabled{opacity:.5;cursor:default}
+
+/* Capture bar */
+.capture{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.capture input{flex:1 1 240px;min-width:0;border:2px solid var(--line);background:var(--surface);border-radius:var(--r);padding:10px 12px;font-size:16px}
+.capture input:focus{border-color:var(--accent);outline:none}
+.capture select{border:2px solid var(--line);background:var(--surface);border-radius:var(--r);padding:0 10px;font-weight:600;min-height:44px}
+
+/* Blocks */
+.blocks{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px;align-items:start}
+.block{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;min-width:0}
+.block>h3{margin:0;display:flex;align-items:baseline;gap:8px;padding:8px 12px;font-family:var(--display);font-size:19px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;border-top:5px solid var(--bc)}
+.block>h3 .count{margin-left:auto;font-family:var(--body);font-size:12px;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0}
+.items{list-style:none;margin:0;padding:0}
+.item{border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:6px 8px;align-items:start;padding:8px 12px;cursor:pointer}
+.row:hover{background:var(--surface-2)}
+.check{width:24px;height:24px;border-radius:50%;border:2px solid var(--bc);background:transparent;display:grid;place-items:center;padding:0;margin-top:1px}
+.check[aria-pressed="true"]{background:var(--bc);color:var(--surface)}
+.check svg{width:14px;height:14px}
+.title{font-weight:600;overflow-wrap:anywhere}
+.done .title{text-decoration:line-through;text-decoration-color:var(--accent);text-decoration-thickness:2px;color:var(--muted);font-weight:500}
+.next{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.next b{color:var(--ink);font-weight:600}
+.done .next{text-decoration:line-through;text-decoration-color:var(--accent)}
+.tags{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;max-width:130px}
+.tag{font-size:11px;font-weight:700;border-radius:999px;padding:2px 7px;white-space:nowrap;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.tag.wait{background:var(--wait-soft);color:var(--wait);border-color:transparent}
+.tag.nudge{background:var(--nudge-soft);color:var(--nudge);border-color:transparent}
+.tag.roll{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.tag.ex{border-style:dashed}
+.addline{display:flex;border-top:1px solid var(--line)}
+.addline input{flex:1;min-width:0;border:0;background:transparent;padding:9px 12px 9px 50px;font-size:14px}
+.addline input:focus{outline:none;background:var(--surface-2)}
+.empty-block{padding:10px 12px 10px 50px;font-size:13px;color:var(--muted);border-top:1px solid var(--line)}
+
+/* Expanded item editor */
+.editor{padding:4px 12px 14px 50px;display:grid;gap:10px;background:var(--surface-2)}
+.field{display:grid;gap:3px}
+.field>span{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.field input,.field select,.field textarea,.cell textarea,.set input,.set select{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:7px 9px;width:100%;min-width:0}
+.field textarea{min-height:68px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.links{display:flex;flex-wrap:wrap;gap:6px;font-size:13px}
+.links a{color:var(--accent);overflow-wrap:anywhere}
+.copy{border:1px solid var(--line);background:var(--surface);border-radius:6px;font-size:11px;padding:1px 6px;margin-left:4px}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:13px}
+.log li{display:grid;grid-template-columns:92px 1fr;gap:8px}
+.log time{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:3px 10px;font-size:13px;font-weight:600}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.logadd{display:flex;gap:6px}
+.logadd input{flex:1;min-width:0;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 9px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.draft{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:14px;white-space:pre-wrap}
+.check-inline{display:flex;gap:8px;align-items:center;font-size:14px}
+
+/* Days grid */
+.days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+.day{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;min-width:0}
+.day.today{outline:2px solid var(--accent);outline-offset:-1px}
+.dayhead{background:var(--band);color:var(--band-ink);padding:6px 8px;display:grid;gap:4px}
+.dayhead b{font-family:var(--display);font-size:20px;letter-spacing:.06em}
+.dayhead b span{opacity:.75;font-weight:600;margin-left:4px}
+.dayhead select{background:rgba(255,255,255,.12);color:inherit;border:1px solid rgba(255,255,255,.3);border-radius:6px;font-size:12px;padding:2px 4px;width:100%}
+.dayhead select option{color:#18202e;background:#fff}
+.cell{display:grid;grid-template-columns:30px minmax(0,1fr);border-top:1px dashed var(--line);cursor:text}
+.cell:nth-child(even){background:var(--surface-2)}
+.cell .h{font-family:var(--display);font-weight:700;font-size:15px;padding:3px 4px;color:var(--muted);text-align:right}
+.cell .c{padding:3px 6px;font-size:13px;overflow-wrap:anywhere;min-width:0}
+.cell textarea{height:100%;min-height:40px;border-radius:4px;padding:3px 5px;font-size:13px;resize:none}
+.sz1{min-height:28px}.sz2{min-height:46px}.sz3{min-height:84px}
+.sched{display:inline-block;font-size:12px;font-weight:600;border-left:3px solid var(--bc);padding:0 5px;margin:1px 0;background:var(--surface);border-radius:3px}
+.sched.done{text-decoration:line-through;color:var(--muted)}
+.daystrip{display:none;gap:4px;margin-bottom:10px;overflow-x:auto}
+.daystrip button{flex:1 0 44px;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 0;font-family:var(--display);font-weight:700;font-size:15px;line-height:1.05}
+.daystrip button small{display:block;font-family:var(--body);font-weight:500;font-size:11px;color:var(--muted)}
+.daystrip button[aria-pressed="true"]{background:var(--band);color:var(--band-ink);border-color:var(--band)}
+.daystrip button[aria-pressed="true"] small{color:inherit}
+.weeknote{margin-bottom:12px}
+.weeknote textarea{width:100%;min-height:56px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:8px 10px;resize:vertical}
+.hint{font-size:13px;color:var(--muted)}
+
+/* Journal & patterns */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;min-width:0}
+.panel h3{margin:0 0 10px;font-family:var(--display);font-size:20px;letter-spacing:.04em;text-transform:uppercase}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px;align-items:start}
+.jday{margin-bottom:14px}
+.jday h4{margin:0 0 6px;font-family:var(--display);font-size:17px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.jrow{display:grid;grid-template-columns:62px 10px minmax(0,1fr);gap:8px;align-items:baseline;padding:3px 0;font-size:14px}
+.jrow time{color:var(--muted);font-size:12px}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--bc);display:inline-block}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px}
+.stat b{display:block;font-family:var(--display);font-size:34px;line-height:1}
+.stat span{font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.bars{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;height:150px;padding-top:8px}
+.bar{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;font-size:12px}
+.bar i{display:block;width:100%;max-width:46px;background:var(--accent-soft);border-radius:5px 5px 0 0;min-height:2px}
+.bar.top i{background:var(--accent)}
+.bar b{font-family:var(--display);font-size:15px}
+.bar span{color:var(--muted)}
+.list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.list li{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:8px;align-items:baseline;font-size:14px}
+.hbar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;display:flex}
+.hbar i{display:block;height:100%}
+.out{font-size:15px;line-height:1.5;min-height:24px}
+.out ul{margin:4px 0 8px;padding-left:20px}
+.out p{margin:0 0 8px}
+.out h4{margin:10px 0 4px;font-family:var(--display);font-size:17px;letter-spacing:.04em;text-transform:uppercase}
+.assist textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);padding:8px 10px;resize:vertical;margin-bottom:8px}
+.caprow{display:grid;grid-template-columns:24px minmax(0,1fr) 140px;gap:8px;align-items:center;padding:4px 0;font-size:14px}
+.caprow select{border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:3px}
+
+/* Settings sheet */
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(10,14,22,.5);display:flex;justify-content:flex-end}
+.sheet .inner{background:var(--bg);width:min(640px,100%);height:100%;overflow-y:auto;padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(40px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:14px;align-content:start}
+.sheet h2{margin:0;font-family:var(--display);font-size:28px;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between}
+.set{display:grid;gap:8px}
+.setrow{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:6px;align-items:center}
+.setrow.st{grid-template-columns:70px minmax(0,1fr) 80px auto}
+.swatch{width:26px;height:26px;border-radius:50%;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line);background:var(--bc);padding:0}
+.mini{display:flex;gap:4px}
+.mini button{border:1px solid var(--line);background:var(--surface);border-radius:6px;min-width:30px;height:30px}
+.tablewrap{overflow-x:auto}
+table.lay{border-collapse:collapse;font-size:13px;width:100%}
+table.lay th,table.lay td{border-bottom:1px solid var(--line);padding:3px 6px;text-align:left}
+table.lay select{padding:2px 4px;border-radius:6px}
+/* Coming up + events */
+.coming{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);margin-bottom:16px;overflow:hidden}
+.coming>h3{margin:0;display:flex;align-items:center;gap:10px;padding:8px 12px;font-family:var(--display);font-size:19px;letter-spacing:.04em;text-transform:uppercase;border-top:5px solid var(--band)}
+.coming>h3 .btn{margin-left:auto;font-family:var(--body);text-transform:none;letter-spacing:0}
+.cu{display:grid;grid-template-columns:88px 62px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:7px 12px;border-top:1px solid var(--line);cursor:pointer;font-size:14px}
+.cu:hover{background:var(--surface-2)}
+.cu .d{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.04em;text-transform:uppercase}
+.cu .t{color:var(--muted);font-size:13px}
+.cu .n{overflow-wrap:anywhere;font-weight:600;border-left:3px solid var(--bc);padding-left:7px}
+.cu.done .n{text-decoration:line-through;text-decoration-color:var(--accent);color:var(--muted)}
+.prep{display:flex;gap:6px;align-items:center;padding:7px 12px;border-top:1px solid var(--line);background:var(--wait-soft);color:var(--wait);font-size:14px;font-weight:600}
+.prep span{flex:1;min-width:0}
+.ev{display:block;width:100%;text-align:left;font-size:12px;font-weight:600;border:0;border-left:3px solid var(--bc);background:var(--accent-soft);color:var(--ink);padding:2px 6px;margin:1px 0 3px;border-radius:3px;overflow-wrap:anywhere}
+.ev.done,.ev.skip{text-decoration:line-through;color:var(--muted);background:var(--surface)}
+.ev small{font-weight:500;color:var(--muted);margin-right:4px}
+.pcell{display:block;border-top:1px dashed var(--line);padding:5px 7px 7px;min-height:64px;cursor:text}
+.pcell:nth-child(odd){background:var(--surface-2)}
+.pcell .ph{display:flex;justify-content:space-between;gap:6px;font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.pcell .ph span:last-child{font-family:var(--body);font-weight:500;letter-spacing:0;text-transform:none;font-size:11px}
+.pcell .txt{font-size:13px;overflow-wrap:anywhere}
+.pcell textarea{width:100%;min-height:52px;border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:3px 5px;font-size:13px;resize:vertical}
+.daytools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.daypick{display:flex;gap:4px;flex-wrap:wrap}
+.daypick button{border:1px solid var(--line);background:var(--surface);border-radius:999px;min-width:44px;height:34px;font-weight:700;font-size:13px}
+.daypick button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.occ{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;display:grid;gap:10px}
+.occ h3{margin:0;font-family:var(--display);font-size:22px;letter-spacing:.03em}
+.occ .sum{color:var(--muted);font-size:14px}
+.setrow.pr{grid-template-columns:minmax(0,1fr) 104px 104px auto}
+@media (max-width:900px){.pcell{min-height:72px}.pcell .txt,.ev{font-size:15px}}
+@media (max-width:560px){.cu{grid-template-columns:86px 46px minmax(0,1fr)}.cu .d{font-size:14px}.tabs button{padding:8px 7px 10px;font-size:14px}.cu .tags{display:none}.setrow.pr{grid-template-columns:minmax(0,1fr) 88px 88px}.setrow.pr .mini{grid-column:1/-1}}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:14px;font-weight:600;z-index:30;max-width:calc(100% - 32px)}
+
+@media (max-width:900px){
+  .days{grid-template-columns:minmax(0,1fr)}
+  .days .day{display:none}
+  .days .day.sel{display:block}
+  .daystrip{display:flex}
+  .cell{grid-template-columns:40px minmax(0,1fr)}
+  .cell .c{font-size:15px}
+}
+@media (max-width:560px){
+  .range strong{font-size:18px}
+  .range span{font-size:11px}
+  .topbar{gap:10px}
+  .wk{min-width:46px;padding:3px 6px 2px}.wk b{font-size:24px}
+  .nav button,.iconbtn{min-width:32px;padding:0 8px}
+  .pill-nudge .lbl{display:none}
+  .tabs button{padding:8px 9px 10px;font-size:15px;letter-spacing:.04em}
+  .sync{display:none}
+  .two{grid-template-columns:1fr}
+  .editor{padding-left:12px}
+  .addline input{padding-left:12px}
+  .empty-block{padding-left:12px}
+  .blocks{grid-template-columns:minmax(0,1fr)}
+  .setrow.st{grid-template-columns:56px minmax(0,1fr) 64px auto}
+}
+@media (prefers-reduced-motion:no-preference){.row,.check,.btn{transition:background .12s,border-color .12s}}
+</style>
+
+</head>
+<body>
+<div id="app">
+  <header class="top"><div class="wrap"><div class="topbar"><div class="wk"><small>W</small><b>–</b></div><div class="range"><strong>RTD</strong><span>Loading your list…</span></div></div></div></header>
+  <main class="wrap"><p class="hint">Loading your running to-do…</p></main>
+</div>
+<div id="toast" class="toast" hidden></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+(function(){
+"use strict";
+/* ---------- helpers ---------- */
+const $=(s,el=document)=>el.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2)).replace(/-/g,"").slice(0,16);
+const nowISO=()=>new Date().toISOString();
+const pad=n=>String(n).padStart(2,"0");
+const dkey=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parseD=k=>{const[y,m,d]=k.split("-").map(Number);return new Date(y,m-1,d);};
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x;};
+const DAYN=["SUN","MON","TUE","WED","THU","FRI","SAT"];
+const DAYL=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const HOURS=[4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24];
+const hlabel=h=>h===12?"Noon":h===24?"12a":h<12?h+"a":(h-12)+"p";
+const hshort=h=>h===12?"12":h===24?"12":String(h>12?h-12:h);
+const COLORS=8;
+function weekStartOf(date,sd){const d=new Date(date);d.setHours(0,0,0,0);d.setDate(d.getDate()-((d.getDay()-sd+7)%7));return d;}
+function isoWeek(d){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const dn=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-dn);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil(((t-y)/864e5+1)/7);}
+const daysBetween=(a,b)=>Math.round((weekStartOf(b,0)-weekStartOf(a,0))/864e5/7);
+const ageDays=iso=>Math.floor((Date.now()-new Date(iso).getTime())/864e5);
+const fmtTime=iso=>{const d=new Date(iso);let h=d.getHours();const m=pad(d.getMinutes());const ap=h>=12?"p":"a";h=h%12||12;return h+":"+m+ap;};
+const fmtShort=iso=>{const d=new Date(iso);return DAYN[d.getDay()].slice(0,3)+" "+(d.getMonth()+1)+"/"+d.getDate();};
+function toast(msg){const t=$("#toast");t.textContent=msg;t.hidden=false;clearTimeout(toast._t);toast._t=setTimeout(()=>{t.hidden=true;},2600);}
+function md(text){const inl=s=>s.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");let out="",inList=false;for(const l of esc(text).split("\n")){const m=l.match(/^\s*(?:[-*•]|\d+\.)\s+(.*)/);if(m){if(!inList){out+="<ul>";inList=true;}out+="<li>"+inl(m[1])+"</li>";continue;}if(inList){out+="</ul>";inList=false;}const h=l.match(/^#{1,4}\s+(.*)/);if(h){out+="<h4>"+inl(h[1])+"</h4>";continue;}if(l.trim())out+="<p>"+inl(l)+"</p>";}if(inList)out+="</ul>";return out;}
+function findLinks(raw){const out=[];const re=/(https?:\/\/[^\s<>"]+)|([\w.+-]+@[\w-]+\.[\w.-]+)|((?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4})/g;let m;while((m=re.exec(raw||""))){if(m[1])out.push({kind:"web",v:m[1]});else if(m[2])out.push({kind:"email",v:m[2]});else out.push({kind:"phone",v:m[3]});}return out;}
+
+/* ---------- state ---------- */
+const S={mode:"local",uid:null,isOwner:true,db:null,sample:null,downloads:null,settings:null,items:new Map(),events:new Map(),weeks:new Map(),tomb:{},loaded:false,
+  view:{ev:null,wk:null,tab:"list",open:null,day:dkey(new Date()),cell:null,confirm:null,settings:false,draft:{},assist:{},capture:null,quickBlock:null}};
+const LS="rtd2.v1";
+
+function defaultSettings(owner){
+  const names=owner?["Training","Madden","Cards","Strength BIBLE","Timer","Daily Dose","Content","Personal"]:["Work","Projects","Personal"];
+  const sizes=(fn)=>{const o={};HOURS.forEach(h=>o[h]=fn(h));return o;};
+  return {v:2,weekStart:1,eventsSeeded:true,periods:defaultPeriods(),
+    blocks:names.map((n,i)=>({id:"b"+(i+1),name:n,color:i%COLORS})),
+    statuses:[{key:"open",label:"Open",short:"",nudge:0,fixed:true},{key:"wth",label:"Waiting to hear back",short:"wth",nudge:4},{key:"wcb",label:"Waiting for callback",short:"wcb",nudge:3},{key:"done",label:"Done",short:"✓",nudge:0,fixed:true}],
+    layouts:{
+      work:{label:"Work day",sizes:sizes(h=>h===4?2:h<=11?1:h<=14?3:h<=19?1:h<=23?2:1)},
+      appt:{label:"Out & about",sizes:sizes(h=>h<=5?1:h<=11?3:h<=16?2:h<=20?3:1)},
+      off:{label:"Off day",sizes:sizes(()=>2)}},
+    dayDefaults:{0:"off",1:"work",2:"work",3:"work",4:"work",5:"work",6:"off"}};
+}
+function defaultPeriods(){return [{id:"early",name:"Early AM",start:"05:00",end:"09:00"},{id:"am",name:"Morning",start:"09:00",end:"12:00"},{id:"aft",name:"Afternoon",start:"12:00",end:"15:00"},{id:"late",name:"Late afternoon",start:"15:00",end:"18:00"},{id:"eve",name:"Evening",start:"18:00",end:"21:00"},{id:"night",name:"Night",start:"21:00",end:"01:00"}];}
+function exampleEvents(st){
+  const blk=n=>(st.blocks.find(b=>b.name===n)||st.blocks[0]).id;
+  const ws=weekStartOf(new Date(),1);const k=o=>dkey(addDays(ws,o));
+  const mk=o=>Object.assign({id:uid(),type:"event",example:true,time:"",period:"",location:"",notes:"",occ:{},prep:null,created:nowISO()},o);
+  return [
+    mk({title:"Training · Lucia",block:blk("Training"),start:k(-14),time:"06:00",rule:{freq:"weekly",interval:1,days:[2,4]},location:"Main gym",notes:"Lower body focus this block"}),
+    mk({title:"Conway Court",block:blk("Personal"),start:k(-21),time:"09:30",rule:{freq:"weekly",interval:1,days:[1]}}),
+    mk({title:"Dentist · crown follow-up",block:blk("Personal"),start:k(9),time:"14:00",rule:{freq:"none"},location:"Dr. Patel, Montclair",prep:{days:2,text:"Confirm the appointment"}}),
+    mk({title:"Rowing",block:blk("Training"),start:k(-7),time:"",period:"eve",rule:{freq:"weekly",interval:2,days:[5]}})
+  ];
+}
+function exampleItems(st){
+  const blk=n=>(st.blocks.find(b=>b.name===n)||st.blocks[0]).id;
+  const ago=(d,h=10)=>{const x=new Date();x.setDate(x.getDate()-d);x.setHours(h,15,0,0);return x.toISOString();};
+  const mk=(o)=>Object.assign({id:uid(),type:"item",created:ago(2),status:"open",statusSince:ago(2),doneAt:null,notes:"",next:"",log:[],example:true,repeat:false,doneWeeks:{}},o);
+  const ws=weekStartOf(new Date(),st.weekStart);const wk=dkey(ws);const today=new Date();
+  const inWeek=(off,h)=>{const x=addDays(ws,off);x.setHours(h,20,0,0);return x>today?ago(0,Math.max(5,today.getHours()-1)):x.toISOString();};
+  return [
+    mk({block:blk("Personal"),title:"Find DMD",notes:"Dr. Patel – Montclair – takes my insurance – (973) 555-0142\nDr. Reyes – 10 min away – Saturday hours\nWhy: crown & root canal follow-up",next:"Call Dr. Patel's office",status:"wcb",created:ago(16),statusSince:ago(6),log:[{t:ago(16),text:"Added"},{t:ago(6,9),text:"Called – lvm"},{t:ago(6,9),text:"Status → wcb"}]}),
+    mk({block:blk("Personal"),title:"Shoulder PT",next:"Find PT near the gym",created:ago(9),statusSince:ago(9),log:[{t:ago(9),text:"Added"}]}),
+    mk({block:blk("Training"),title:"Tue/Thu 6am group",notes:"Recurring weekly session",next:"Text roster reminder Monday night",repeat:true,created:ago(30),doneWeeks:{[wk]:inWeek(1,7)},log:[{t:ago(30),text:"Added"}]}),
+    mk({block:blk("Training"),title:"Sched 11.15 Ride?",next:"Confirm route with the group",status:"wth",created:ago(3),statusSince:ago(2),log:[{t:ago(3),text:"Added"},{t:ago(2,18),text:"Texted group – wth"}]}),
+    mk({block:blk("Strength BIBLE"),title:"Chapter 3: squat progressions",next:"Outline the 4-week block",created:ago(22),statusSince:ago(22),log:[{t:ago(22),text:"Added"}]}),
+    mk({block:blk("Madden"),title:"Season-mode content plan",next:"List 5 episode ideas",created:ago(4),statusSince:ago(4)}),
+    mk({block:blk("Cards"),title:"Price the rookie lot",next:"Check recent sold listings",status:"wth",created:ago(8),statusSince:ago(5),log:[{t:ago(5,20),text:"Emailed buyer – wth"}]}),
+    mk({block:blk("Timer"),title:"Test interval presets",next:"Run a 30/30 EMOM on the iPhone build",created:ago(1),statusSince:ago(1)}),
+    mk({block:blk("Daily Dose"),title:"Check athlete alerts",notes:"Recurring – every morning in the Daily Dose app",repeat:true,created:ago(30)}),
+    mk({block:blk("Content"),title:"Film 3 short clips for IG",next:"Edit and post",status:"done",created:ago(5),doneAt:inWeek(2,15),statusSince:inWeek(2,15),log:[{t:ago(5),text:"Added"},{t:inWeek(2,15),text:"Done ✓"}]}),
+    mk({block:blk("Content"),title:"Newsletter: warm-up myths",status:"done",created:ago(12),doneAt:ago(9,11),statusSince:ago(9,11),log:[{t:ago(9,11),text:"Done ✓"}]})
+  ];
+}
+
+/* ---------- persistence ---------- */
+function saveLocal(){try{localStorage.setItem(LS,JSON.stringify({settings:S.settings,items:[...S.items.values()],events:[...S.events.values()],weeks:Object.fromEntries(S.weeks),tomb:S.tomb}));}catch(e){toast("This device is out of room to save. Export a backup from Setup.");}}
+function loadLocal(){try{const raw=localStorage.getItem(LS);if(!raw)return false;const o=JSON.parse(raw);if(!o.settings)return false;S.settings=o.settings;S.items=new Map((o.items||[]).map(i=>[i.id,i]));S.events=new Map((o.events||[]).map(i=>[i.id,i]));S.weeks=new Map(Object.entries(o.weeks||{}));S.tomb=o.tomb||{};migrate();return true;}catch(e){return false;}}
+// Bring older saved setups forward (v1 had an hour grid and no events)
+function migrate(){
+  const s=S.settings;let changed=false;
+  if(!s.periods||!s.periods.length){s.periods=defaultPeriods();changed=true;}
+  if(!s.eventsSeeded){s.eventsSeeded=true;changed=true;
+    if([...S.items.values()].some(i=>i.example))for(const ev of exampleEvents(s)){S.events.set(ev.id,ev);persist("event_"+ev.id,ev);}}
+  if(changed){s.v=2;persist("settings",s);}
+}
+function saveEvent(ev){ev.updated=nowISO();S.events.set(ev.id,ev);persist("event_"+ev.id,ev);}
+function deleteEvent(id){S.events.delete(id);persist("event_"+id,null);}
+// Every change is saved on this device right away, then synced to your GitHub (if connected) a few seconds later.
+function persist(id,data){
+  if(!data){S.tomb[id]=nowISO();}
+  else if(id==="settings"||id.startsWith("week_")){data.updated=nowISO();}
+  saveLocal();Sync.soon();
+}
+
+/* ---------- sync to a private GitHub Gist ---------- */
+const SYNCKEY="rtd2.sync";const FILE="rtd-data.json";const DESC="RTD 2.0 data (do not edit)";
+const Sync={
+  cfg:(()=>{try{return JSON.parse(localStorage.getItem(SYNCKEY)||"null");}catch(e){return null;}})(),
+  state:"off",last:null,err:"",t:null,busy:false,again:false,
+  save(){try{if(this.cfg)localStorage.setItem(SYNCKEY,JSON.stringify(this.cfg));else localStorage.removeItem(SYNCKEY);}catch(e){}},
+  on(){return !!(this.cfg&&this.cfg.token&&this.cfg.gist);},
+  soon(){if(!this.on())return;clearTimeout(this.t);this.t=setTimeout(()=>this.run(),3000);},
+  async api(path,opt={}){
+    const r=await fetch("https://api.github.com"+path,Object.assign({},opt,{headers:Object.assign({"Accept":"application/vnd.github+json","Authorization":"Bearer "+this.cfg.token},opt.body?{"Content-Type":"application/json"}:{})}));
+    if(r.status===401)throw new Error("GitHub didn't accept the token. Make a new one and connect again.");
+    if(r.status===404)throw new Error("Your sync file wasn't found on GitHub.");
+    if(!r.ok)throw new Error("GitHub said "+r.status+". Try again in a minute.");
+    return r.status===204?null:r.json();
+  },
+  async readRemote(){const g=await this.api("/gists/"+this.cfg.gist);const f=g.files&&g.files[FILE];if(!f)return null;
+    let txt=f.content;if(f.truncated){const r=await fetch(f.raw_url);txt=await r.text();}
+    try{return JSON.parse(txt);}catch(e){return null;}},
+  async writeRemote(payload){await this.api("/gists/"+this.cfg.gist,{method:"PATCH",body:JSON.stringify({files:{[FILE]:{content:payload}}})});},
+  async connect(token){
+    this.cfg={token:token.trim()};this.state="busy";render();
+    try{
+      // look for an existing RTD gist first, so a second device picks up the same data
+      let found=null;for(let page=1;page<=5&&!found;page++){const list=await this.api("/gists?per_page=100&page="+page);found=list.find(g=>g.description===DESC&&g.files&&g.files[FILE]);if(list.length<100)break;}
+      if(found){this.cfg.gist=found.id;this.save();const remote=await this.readRemote();
+        if(remote&&remote.settings){adopt(remote);toast("Loaded your synced RTD");}
+        else await this.writeRemote(serialize());}
+      else{const g=await this.api("/gists",{method:"POST",body:JSON.stringify({description:DESC,public:false,files:{[FILE]:{content:serialize()}}})});this.cfg.gist=g.id;this.save();toast("Sync is on");}
+      this.state="ok";this.last=new Date();this.err="";
+    }catch(e){this.cfg=null;this.save();this.state="error";this.err=e.message||"Couldn't reach GitHub.";}
+    render();
+  },
+  disconnect(){this.cfg=null;this.save();this.state="off";this.err="";render();},
+  async run(){
+    if(!this.on())return;if(this.busy){this.again=true;return;}
+    if(!navigator.onLine){this.state="offline";render0();return;}
+    this.busy=true;this.state="busy";render0();
+    try{
+      const remote=await this.readRemote();
+      const before=serialize();
+      if(remote&&remote.settings)mergeIn(remote);
+      const after=serialize();
+      const remoteTxt=remote?JSON.stringify(normalize(remote)):"";
+      if(after!==remoteTxt)await this.writeRemote(after);
+      if(after!==before){saveLocal();scheduleRender();}
+      this.state="ok";this.last=new Date();this.err="";
+    }catch(e){this.state="error";this.err=e.message||"Couldn't reach GitHub.";}
+    this.busy=false;render0();
+    if(this.again){this.again=false;this.run();}
+  }
+};
+// small status refresh that doesn't disturb typing
+function render0(){const el=document.getElementById("syncstat");if(el)el.textContent=syncLabel();}
+function syncLabel(){if(!Sync.on())return Sync.state==="busy"?"Connecting…":"Not synced · this device only";
+  return ({busy:"Syncing…",offline:"Offline · will sync later",error:"Sync problem · see Setup",ok:"Synced "+(Sync.last?fmtTime(Sync.last.toISOString()):"")})[Sync.state]||"Sync on";}
+function normalize(o){const byId=a=>(a||[]).slice().sort((x,y)=>x.id<y.id?-1:1);const w={};for(const k of Object.keys(o.weeks||{}).sort())w[k]=o.weeks[k];const t={};for(const k of Object.keys(o.tomb||{}).sort())t[k]=o.tomb[k];
+  return {v:2,settings:o.settings,items:byId(o.items),events:byId(o.events),weeks:w,tomb:t};}
+function serialize(){return JSON.stringify(normalize({settings:S.settings,items:[...S.items.values()],events:[...S.events.values()],weeks:Object.fromEntries(S.weeks),tomb:S.tomb}));}
+function adopt(o){S.settings=o.settings;S.items=new Map((o.items||[]).map(i=>[i.id,i]));S.events=new Map((o.events||[]).map(i=>[i.id,i]));S.weeks=new Map(Object.entries(o.weeks||{}));S.tomb=Object.assign({},o.tomb||{});migrate();saveLocal();}
+function mergeIn(o){
+  const tomb=Object.assign({},o.tomb||{});for(const [k,v] of Object.entries(S.tomb))if(!tomb[k]||v>tomb[k])tomb[k]=v;
+  const cutoff=new Date(Date.now()-120*864e5).toISOString();for(const k of Object.keys(tomb))if(tomb[k]<cutoff)delete tomb[k];
+  const newer=(a,b)=>(a&&a.updated||"")>=(b&&b.updated||"");
+  const mergeMap=(local,remoteArr,prefix)=>{const m=new Map();for(const r of remoteArr||[])m.set(r.id,r);for(const [id,l] of local){const r=m.get(id);if(!r||newer(l,r))m.set(id,l);}
+    for(const [id,r] of [...m])if(tomb[prefix+id]&&tomb[prefix+id]>=(r.updated||""))m.delete(id);return m;};
+  S.items=mergeMap(S.items,o.items,"item_");S.events=mergeMap(S.events,o.events,"event_");
+  const w=new Map(Object.entries(o.weeks||{}));for(const [k,l] of S.weeks){const r=w.get(k);if(!r||newer(l,r))w.set(k,l);}S.weeks=w;
+  if(o.settings&&!newer(S.settings,o.settings))S.settings=o.settings;
+  S.tomb=tomb;
+}
+async function saveFile(filename,data){
+  const blob=data instanceof Blob?data:new Blob([data],{type:filename.endsWith(".json")?"application/json":"text/plain"});
+  const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);
+}
+const clone=o=>JSON.parse(JSON.stringify(o));
+function saveItem(it){it.updated=nowISO();S.items.set(it.id,it);persist("item_"+it.id,it);}
+function deleteItem(id){S.items.delete(id);persist("item_"+id,null);}
+function saveSettings(){persist("settings",S.settings);}
+function weekDoc(wk){return S.weeks.get(wk)||{grid:{},dayType:{},note:""};}
+function saveWeek(wk,w){S.weeks.set(wk,w);persist("week_"+wk,w);}
+function seed(){
+  S.settings=defaultSettings(S.isOwner);
+  persist("settings",S.settings);
+  if(S.isOwner){for(const it of exampleItems(S.settings)){S.items.set(it.id,it);persist("item_"+it.id,it);}
+    for(const ev of exampleEvents(S.settings)){S.events.set(ev.id,ev);persist("event_"+ev.id,ev);}}
+  S.loaded=true;
+}
+
+/* ---------- domain ---------- */
+const st=()=>S.settings;
+const blockOf=id=>st().blocks.find(b=>b.id===id)||st().blocks[0];
+const statusOf=k=>st().statuses.find(s=>s.key===k)||st().statuses[0];
+const curWk=()=>S.view.wk;
+function isDoneIn(it,wk){if(it.repeat)return !!(it.doneWeeks&&it.doneWeeks[wk]);return it.status==="done";}
+function itemsForWeek(wk){
+  const s0=parseD(wk),e=addDays(s0,7);
+  return [...S.items.values()].filter(it=>{
+    if(new Date(it.created)>=e)return false;
+    if(it.repeat)return true;
+    if(it.status!=="done")return true;
+    const d=new Date(it.doneAt);return d>=s0&&d<e;});
+}
+function rolling(it,wk){if(it.repeat)return 0;const c=weekStartOf(new Date(it.created),st().weekStart);return Math.round((parseD(wk)-c)/864e5/7)+1;}
+function nudgeOf(it){if(it.repeat||it.status==="open"||it.status==="done")return null;const s=statusOf(it.status);if(!s.nudge)return null;const d=ageDays(it.statusSince||it.created);return d>=s.nudge?d:null;}
+function addLog(it,text){it.log=[...(it.log||[]),{t:nowISO(),text}];}
+function toggleDone(it){
+  const wk=curWk();
+  if(it.repeat){it.doneWeeks=Object.assign({},it.doneWeeks);if(it.doneWeeks[wk]){delete it.doneWeeks[wk];addLog(it,"Reopened");}else{it.doneWeeks[wk]=nowISO();addLog(it,"Done ✓");}}
+  else if(it.status==="done"){it.status="open";it.doneAt=null;it.statusSince=nowISO();addLog(it,"Reopened");}
+  else{it.status="done";it.doneAt=nowISO();it.statusSince=it.doneAt;addLog(it,"Done ✓");}
+  saveItem(it);
+}
+function setStatus(it,key){if(it.status===key)return;if(key==="done"){toggleDone(it);return;}const was=it.status;it.status=key;it.statusSince=nowISO();if(was==="done")it.doneAt=null;addLog(it,"Status → "+(statusOf(key).short||statusOf(key).label));saveItem(it);}
+function newItem(title,block){const it={id:uid(),type:"item",block,title:title.trim(),notes:"",next:"",status:"open",created:nowISO(),statusSince:nowISO(),doneAt:null,log:[{t:nowISO(),text:"Added"}],repeat:false,doneWeeks:{}};
+  // added while viewing a past/future week: date it into that week so it shows there
+  const s0=parseD(curWk()),e=addDays(s0,7),n=new Date();if(n<s0||n>=e){const d=new Date(s0);d.setHours(9,0,0,0);it.created=d.toISOString();}
+  saveItem(it);return it;}
+function sortItems(list,wk){return list.sort((a,b)=>{const da=isDoneIn(a,wk),db=isDoneIn(b,wk);if(da!==db)return da?1:-1;const na=nudgeOf(a)?1:0,nb=nudgeOf(b)?1:0;if(na!==nb)return nb-na;return new Date(a.created)-new Date(b.created);});}
+
+/* ---------- time blocks & events ---------- */
+const tmin=t=>{const[h,m]=String(t||"0:0").split(":").map(Number);return (h||0)*60+(m||0);};
+const fmtHM=t=>{if(!t)return "";let[h,m]=t.split(":").map(Number);const ap=h>=12?"p":"a";h=h%12||12;return h+(m?":"+pad(m):"")+ap;};
+const ordinal=n=>n+(n%100>10&&n%100<14?"th":({1:"st",2:"nd",3:"rd"})[n%10]||"th");
+const fmtDate=k=>{const d=parseD(k);return MON[d.getMonth()]+" "+d.getDate()+", "+d.getFullYear();};
+const periods=()=>st().periods;
+const periodName=id=>(periods().find(p=>p.id===id)||{name:""}).name;
+function periodFor(time){
+  const ps=periods();if(!time)return null;const m=tmin(time);
+  for(const p of ps){const s=tmin(p.start);let e=tmin(p.end);if(e<=s)e+=1440;let mm=m;if(mm<s)mm+=1440;if(mm>=s&&mm<e)return p.id;}
+  return m<tmin(ps[0].start)&&m>=180?ps[0].id:ps[ps.length-1].id;
+}
+const periodOfItem=it=>it.sched?(it.sched.period||periodFor(pad((+it.sched.hour||9)%24)+":00")):null;
+const evPeriod=ev=>ev.time?periodFor(ev.time):(ev.period||periods()[0].id);
+function baseOccurs(ev,k){
+  const r=ev.rule||{freq:"none"};if(k<ev.start)return false;if(r.until&&k>r.until)return false;
+  const d=parseD(k),s=parseD(ev.start),iv=Math.max(1,+r.interval||1);
+  switch(r.freq){
+    case "daily":return Math.round((d-s)/864e5)%iv===0;
+    case "weekdays":return d.getDay()>0&&d.getDay()<6;
+    case "weekly":{const days=(r.days&&r.days.length)?r.days:[s.getDay()];if(!days.includes(d.getDay()))return false;return Math.round((weekStartOf(d,0)-weekStartOf(s,0))/864e5/7)%iv===0;}
+    case "monthly":{const md=(d.getFullYear()-s.getFullYear())*12+d.getMonth()-s.getMonth();if(md%iv)return false;
+      if(r.monthMode==="nth"){if(d.getDay()!==s.getDay())return false;const n=Math.ceil(s.getDate()/7);return n>=5?addDays(d,7).getMonth()!==d.getMonth():Math.ceil(d.getDate()/7)===n;}
+      return d.getDate()===s.getDate();}
+    case "yearly":return d.getMonth()===s.getMonth()&&d.getDate()===s.getDate();
+    default:return k===ev.start;
+  }
+}
+function occursOn(ev,k){
+  if(!baseOccurs(ev,k))return false;const r=ev.rule||{};
+  if(r.count){let n=0;for(let x=parseD(ev.start);dkey(x)<=k&&n<=r.count;x=addDays(x,1))if(baseOccurs(ev,dkey(x)))n++;if(n>r.count)return false;}
+  return true;
+}
+const eventsOn=k=>[...S.events.values()].filter(ev=>occursOn(ev,k)).sort((a,b)=>(a.time?tmin(a.time):tmin((periods().find(p=>p.id===a.period)||{start:"12:00"}).start))-(b.time?tmin(b.time):tmin((periods().find(p=>p.id===b.period)||{start:"12:00"}).start)));
+const occOf=(ev,k)=>(ev.occ&&ev.occ[k])||{};
+function ruleText(ev){
+  const r=ev.rule||{},s=parseD(ev.start),iv=+r.interval||1;let x;
+  const dayList=ds=>ds.slice().sort((a,b)=>((a+6)%7)-((b+6)%7)).map(i=>DAYL[i].slice(0,3)).join(" & ");
+  switch(r.freq){
+    case "daily":x=iv>1?`Every ${iv} days`:"Every day";break;
+    case "weekdays":x="Every weekday";break;
+    case "weekly":x=(iv>1?`Every ${iv} weeks on `:"Every ")+dayList(r.days&&r.days.length?r.days:[s.getDay()]);break;
+    case "monthly":{const n=Math.ceil(s.getDate()/7);x=(iv>1?`Every ${iv} months`:"Monthly")+(r.monthMode==="nth"?` on the ${n>=5?"last":ordinal(n)} ${DAYL[s.getDay()]}`:` on the ${ordinal(s.getDate())}`);break;}
+    case "yearly":x=`Every year on ${MON[s.getMonth()]} ${s.getDate()}`;break;
+    default:x=`${DAYL[s.getDay()]}, ${fmtDate(ev.start)}`;
+  }
+  if(r.freq&&r.freq!=="none"){if(r.until)x+=`, until ${fmtDate(r.until)}`;else if(r.count)x+=`, ${r.count} times`;}
+  return x+(ev.time?` · ${fmtHM(ev.time)}`:` · ${periodName(ev.period)||"any time"}`);
+}
+function upcoming(days){const out=[];const t=new Date();for(let i=0;i<days;i++){const k=dkey(addDays(t,i));for(const ev of eventsOn(k))out.push({ev,k});}return out;}
+function prepsDue(){const out=[];const t=new Date();for(let i=0;i<=30;i++){const k=dkey(addDays(t,i));for(const ev of eventsOn(k)){if(!ev.prep||!ev.prep.days)continue;if(i<=ev.prep.days&&!occOf(ev,k).prepDone&&!occOf(ev,k).skip)out.push({ev,k,i});}}return out;}
+function setOcc(ev,k,patch){const e=clone(ev);e.occ=Object.assign({},e.occ);e.occ[k]=Object.assign({},e.occ[k],patch);for(const key of Object.keys(e.occ[k]))if(e.occ[k][key]===null||e.occ[k][key]==="")delete e.occ[k][key];if(!Object.keys(e.occ[k]).length)delete e.occ[k];saveEvent(e);return e;}
+function newEventDraft(dateKey){return {id:null,type:"event",title:"",block:"",start:dateKey||dkey(new Date()),time:"",period:"",rule:{freq:"none",interval:1,days:[]},location:"",notes:"",prep:null,occ:{},ends:"never"};}
+const dayLabel=k=>{const t=dkey(new Date()),tm=dkey(addDays(new Date(),1));if(k===t)return "Today";if(k===tm)return "Tomorrow";const d=parseD(k);return DAYN[d.getDay()].slice(0,3)+" "+(d.getMonth()+1)+"/"+d.getDate();};
+
+/* ---------- render ---------- */
+let pending=false;
+function editing(){const a=document.activeElement;return a&&a.closest&&a.closest("#app")&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName);}
+function scheduleRender(){if(editing()){pending=true;return;}render();}
+document.addEventListener("focusout",()=>{setTimeout(()=>{if(pending&&!editing()){pending=false;render();}},50);});
+
+const CHECK='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8.5l3.2 3L13 4.5"/></svg>';
+
+function render(){
+  if(!S.settings){return;}
+  if(!S.view.wk)S.view.wk=dkey(weekStartOf(new Date(),st().weekStart));
+  const fid=document.activeElement&&document.activeElement.id;
+  const wk=curWk(),s0=parseD(wk),e6=addDays(s0,6);
+  const thu=addDays(s0,(4-st().weekStart+7)%7);
+  const nudges=[...S.items.values()].filter(nudgeOf).length+prepsDue().length;
+  const range=(s0.getMonth()===e6.getMonth()?MON[s0.getMonth()]+" "+s0.getDate()+" – "+e6.getDate():MON[s0.getMonth()]+" "+s0.getDate()+" – "+MON[e6.getMonth()]+" "+e6.getDate())+", "+e6.getFullYear();
+  const thisWk=dkey(weekStartOf(new Date(),st().weekStart));
+  const rel=wk===thisWk?"This week":wk<thisWk?"Past week":"Upcoming week";
+  const tabs=[["list","List"],["days","Days"],["journal","Journal"],["patterns","Patterns"]];
+  let h=`<header class="top"><div class="wrap"><div class="topbar">
+    <div class="wk" title="Week number"><small>W</small><b>${isoWeek(thu)}</b></div>
+    <div class="range"><strong>${range}</strong><span>${rel} · <span id="syncstat">${syncLabel()}</span></span></div>
+    <div class="nav">
+      ${nudges?`<button class="pill-nudge" data-act="nudges" title="Waiting items with no reply, and events to prepare for">${nudges}<span class="lbl"> need you</span></button>`:""}
+      <button data-act="prev" aria-label="Previous week">‹</button>
+      ${wk!==thisWk?`<button data-act="today">Today</button>`:""}
+      <button data-act="nextwk" aria-label="Next week">›</button>
+      <button class="iconbtn" data-act="settings" aria-label="Setup" title="Setup">⚙</button>
+    </div></div>
+    <nav class="tabs" role="tablist">${tabs.map(([k,l])=>`<button role="tab" aria-selected="${S.view.tab===k}" data-act="tab" data-v="${k}">${l}</button>`).join("")}</nav>
+  </div></header><main class="wrap">`;
+  const exN=[...S.items.values()].filter(i=>i.example).length+[...S.events.values()].filter(i=>i.example).length;
+  if(exN)h+=`<div class="banner"><span>You're looking at ${exN} example items so you can see how the RTD works. Add your own anytime.</span><button class="btn small" data-act="clearex">Clear examples</button></div>`;
+  h+=({list:renderList,days:renderDays,journal:renderJournal,patterns:renderPatterns,assist:renderAssist})[S.view.tab](wk);
+  h+=`</main>`;
+  if(S.view.settings)h+=renderSettings();
+  if(S.view.ev)h+=renderEventSheet();
+  $("#app").innerHTML=h;
+  if(fid){const el=document.getElementById(fid);if(el){el.focus();if(el.setSelectionRange&&el.type!=="select-one"&&el.value!=null&&el.tagName!=="SELECT"){try{const n=el.value.length;el.setSelectionRange(n,n);}catch(e){}}}}
+  if(S.view.cell){const c=document.getElementById("cell-edit");if(c&&document.activeElement!==c)c.focus();}
+}
+
+function itemRow(it,wk){
+  const b=blockOf(it.block),done=isDoneIn(it,wk),open=S.view.open===it.id;
+  const roll=rolling(it,wk),ng=nudgeOf(it),sts=statusOf(it.status);
+  let tags="";
+  if(it.example)tags+=`<span class="tag ex">example</span>`;
+  if(it.repeat)tags+=`<span class="tag" title="Repeats weekly">↻ weekly</span>`;
+  if(!done&&!it.repeat&&it.status!=="open")tags+=`<span class="tag ${ng?"nudge":"wait"}" title="${esc(sts.label)}">${esc(sts.short||sts.label)}${ng?" · "+ng+"d":""}</span>`;
+  if(!done&&roll>1)tags+=`<span class="tag roll" title="Carried forward ${roll-1} week(s)">wk ${roll}</span>`;
+  if(it.sched&&it.sched.date)tags+=`<span class="tag" title="Planned on the Days view">${DAYN[parseD(it.sched.date).getDay()].slice(0,3)} · ${esc(periodName(periodOfItem(it)))}</span>`;
+  let r=`<li class="item${done?" done":""}" style="--bc:var(--c${b.color})"><div class="row" data-act="open" data-id="${it.id}">
+    <button class="check" aria-pressed="${done}" aria-label="${done?"Mark not done":"Cross off"}" data-act="done" data-id="${it.id}">${done?CHECK:""}</button>
+    <div><div class="title">${esc(it.title)}</div>${it.next?`<div class="next"><b>Next:</b> ${esc(it.next)}</div>`:""}</div>
+    <div class="tags">${tags}</div></div>`;
+  if(open)r+=itemEditor(it,wk);
+  return r+"</li>";
+}
+function itemEditor(it,wk){
+  const s0=parseD(wk);const links=findLinks((it.notes||"")+"\n"+(it.next||"")+"\n"+(it.title||""));
+  const waiting=!it.repeat&&it.status!=="open"&&it.status!=="done";
+  const d=S.view.draft[it.id];
+  return `<div class="editor">
+    <label class="field"><span>Item</span><input id="f-title-${it.id}" data-f="title" data-id="${it.id}" value="${esc(it.title)}"></label>
+    <label class="field"><span>WWW · who, where, what, why</span><textarea id="f-notes-${it.id}" data-f="notes" data-id="${it.id}" placeholder="Names, numbers, options you're weighing, why it matters…">${esc(it.notes)}</textarea></label>
+    ${links.length?`<div class="links">${links.map(l=>l.kind==="web"?`<a href="${esc(l.v)}" target="_blank" rel="noopener">${esc(l.v.replace(/^https?:\/\//,"").slice(0,40))}</a>`:`<span><a href="${l.kind==="email"?"mailto:":"tel:"}${esc(l.kind==="email"?l.v:l.v.replace(/[^\d+]/g,""))}">${esc(l.v)}</a><button class="copy" data-act="copy" data-v="${esc(l.v)}">Copy</button></span>`).join("")}</div>`:""}
+    <label class="field"><span>Next action</span><input id="f-next-${it.id}" data-f="next" data-id="${it.id}" value="${esc(it.next)}" placeholder="The very next step"></label>
+    <div class="two">
+      <label class="field"><span>Status</span><select id="f-status-${it.id}" data-f="status" data-id="${it.id}" ${it.repeat?"disabled":""}>${st().statuses.map(s=>`<option value="${s.key}" ${it.status===s.key?"selected":""}>${esc(s.label)}${s.short&&s.key!=="done"?" ("+esc(s.short)+")":""}</option>`).join("")}</select></label>
+      <label class="field"><span>Block</span><select id="f-block-${it.id}" data-f="block" data-id="${it.id}">${st().blocks.map(b=>`<option value="${b.id}" ${it.block===b.id?"selected":""}>${esc(b.name)}</option>`).join("")}</select></label>
+    </div>
+    <div class="two">
+      <label class="field"><span>Plan it for a day</span><select id="f-sd-${it.id}" data-f="sdate" data-id="${it.id}"><option value="">Not planned</option>${[0,1,2,3,4,5,6].map(i=>{const d=addDays(s0,i);const k=dkey(d);return `<option value="${k}" ${it.sched&&it.sched.date===k?"selected":""}>${DAYL[d.getDay()]} ${d.getMonth()+1}/${d.getDate()}</option>`;}).join("")}</select></label>
+      <label class="field"><span>Time of day</span><select id="f-sh-${it.id}" data-f="speriod" data-id="${it.id}">${periods().map(p=>`<option value="${p.id}" ${(periodOfItem(it)||periods()[0].id)===p.id?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label>
+    </div>
+    <label class="check-inline"><input type="checkbox" id="f-rep-${it.id}" data-f="repeat" data-id="${it.id}" ${it.repeat?"checked":""}> Repeats every week (crossing it off only counts for that week)</label>
+    <div class="field"><span>Log · your running journal for this item</span>
+      ${(it.log&&it.log.length)?`<ul class="log">${it.log.slice(-8).map(l=>`<li><time>${fmtShort(l.t)} ${fmtTime(l.t)}</time><span>${esc(l.text)}</span></li>`).join("")}</ul>`:`<span class="hint">Nothing logged yet.</span>`}
+      <div class="chips">${["lvm","Called","Texted","Emailed","Met","Paid"].map(c=>`<button class="chip" data-act="log" data-id="${it.id}" data-v="${c}">${c}</button>`).join("")}</div>
+      <form class="logadd" data-act="logform" data-id="${it.id}"><input id="f-log-${it.id}" placeholder="Add a note, e.g. ‘she'll call back Fri’" aria-label="Add a log note"><button class="btn small">Log</button></form>
+    </div>
+    ${d?`<div class="field"><span>Follow-up draft</span><div class="draft" id="draft-${it.id}">${esc(d.text||"Thinking…")}</div>${d.text&&!d.busy?`<div class="actions"><button class="btn small" data-act="copy" data-v="${esc(d.text)}">Copy draft</button></div>`:""}</div>`:""}
+    <div class="actions">
+      ${waiting&&S.sample?`<button class="btn small" data-act="followup" data-id="${it.id}">Draft a follow-up</button>`:""}
+      ${S.view.confirm===it.id?`<span class="hint">Delete for good? Crossing off keeps it in your journal.</span><button class="btn small danger" data-act="del" data-id="${it.id}">Delete</button><button class="btn small" data-act="nodel">Keep</button>`:`<button class="btn small" data-act="askdel" data-id="${it.id}">Delete…</button>`}
+      <button class="btn small" data-act="close" style="margin-left:auto">Close</button>
+    </div></div>`;
+}
+function renderList(wk){
+  const items=itemsForWeek(wk);
+  const qb=S.view.quickBlock||st().blocks[0].id;
+  let h=`<form class="capture" data-act="capture"><input id="cap" placeholder="Capture anything… it lands in the block you pick" aria-label="New item" autocomplete="off"><select id="capblock" aria-label="Block">${st().blocks.map(b=>`<option value="${b.id}" ${b.id===qb?"selected":""}>${esc(b.name)}</option>`).join("")}</select><button class="btn primary">Add</button></form>${renderComing()}<div class="blocks">`;
+  for(const b of st().blocks){
+    const list=sortItems(items.filter(i=>blockOf(i.block).id===b.id),wk);
+    const open=list.filter(i=>!isDoneIn(i,wk)).length,done=list.length-open;
+    h+=`<section class="block" style="--bc:var(--c${b.color})"><h3>${esc(b.name)}<span class="count">${open} open${done?` · ${done} crossed off`:""}</span></h3>
+      <ul class="items">${list.map(i=>itemRow(i,wk)).join("")}</ul>
+      ${list.length?"":`<div class="empty-block">Nothing here this week.</div>`}
+      <form class="addline" data-act="addline" data-b="${b.id}"><input id="add-${b.id}" placeholder="+ Add to ${esc(b.name)}" aria-label="Add to ${esc(b.name)}" autocomplete="off"></form></section>`;
+  }
+  return h+`</div>`;
+}
+function renderComing(){
+  const up=upcoming(8).slice(0,10),preps=prepsDue();
+  let h=`<section class="coming"><h3>Coming up<button class="btn small" data-act="newev">+ Event</button></h3>`;
+  for(const p of preps)h+=`<div class="prep"><span>${esc(p.ev.prep.text||"Get ready")} · ${esc(p.ev.title)} ${p.i===0?"today":p.i===1?"tomorrow":"in "+p.i+" days"}</span><button class="btn small" data-act="prepdone" data-id="${p.ev.id}" data-v="${p.k}">Done</button></div>`;
+  if(!up.length)h+=`<div class="empty-block" style="padding-left:12px">Nothing in the next week. Add appointments, sessions or anything that repeats.</div>`;
+  for(const {ev,k} of up){const o=occOf(ev,k);h+=`<div class="cu${o.done||o.skip?" done":""}" data-act="ev" data-id="${ev.id}" data-v="${k}" style="--bc:var(--c${ev.block?blockOf(ev.block).color:7})"><span class="d">${dayLabel(k)}</span><span class="t">${ev.time?fmtHM(ev.time):esc(periodName(evPeriod(ev)))}</span><span class="n">${esc(ev.title)}${o.skip?" (skipped)":""}</span><span class="tags">${ev.rule&&ev.rule.freq!=="none"?`<span class="tag" title="${esc(ruleText(ev))}">↻</span>`:""}${ev.example?`<span class="tag ex">example</span>`:""}</span></div>`;}
+  return h+`</section>`;
+}
+function renderDays(wk){
+  const s0=parseD(wk),w=weekDoc(wk),today=dkey(new Date());
+  const days=[0,1,2,3,4,5,6].map(i=>addDays(s0,i));
+  if(!days.some(d=>dkey(d)===S.view.day))S.view.day=dkey(days.find(d=>dkey(d)===today)||days[0]);
+  const items=[...S.items.values()].filter(i=>i.sched&&i.sched.date);
+  let h=`<div class="weeknote"><label class="field"><span>Weekly to-do · notes for the week</span><textarea id="weeknote" data-f="weeknote" placeholder="Anything for this week that doesn't belong in a block">${esc(w.note||"")}</textarea></label></div>`;
+  h+=`<div class="daytools"><button class="btn primary" data-act="newev" data-v="${S.view.day}">+ Event</button><span class="hint">Tap a time block to jot in it. Tap an event to check it off, skip it or change it.</span></div>`;
+  h+=`<div class="daystrip">${days.map(d=>`<button aria-pressed="${dkey(d)===S.view.day}" data-act="pickday" data-v="${dkey(d)}">${DAYN[d.getDay()]}<small>${d.getMonth()+1}/${d.getDate()}</small></button>`).join("")}</div><div class="days">`;
+  for(const d of days){
+    const k=dkey(d),evs=eventsOn(k);
+    h+=`<section class="day${k===today?" today":""}${k===S.view.day?" sel":""}"><div class="dayhead"><b>${DAYN[d.getDay()]}<span>${d.getMonth()+1}/${d.getDate()}</span></b></div>`;
+    for(const p of periods()){
+      const ck=k+"|"+p.id;
+      // older hour-grid notes land in the block that covers their hour
+      let txt=(w.grid&&w.grid[ck])||"";
+      if(w.grid)for(const [gk,gv] of Object.entries(w.grid)){const [gd,gh]=gk.split("|");if(gd===k&&/^\d+$/.test(gh)&&periodFor(pad(+gh%24)+":00")===p.id)txt+=(txt?"\n":"")+gv;}
+      const pe=evs.filter(ev=>evPeriod(ev)===p.id);
+      const sch=items.filter(i=>i.sched.date===k&&periodOfItem(i)===p.id);
+      const chips=pe.map(ev=>{const o=occOf(ev,k);return `<button class="ev${o.done?" done":""}${o.skip?" skip":""}" data-act="ev" data-id="${ev.id}" data-v="${k}" style="--bc:var(--c${ev.block?blockOf(ev.block).color:7})">${ev.time?`<small>${fmtHM(ev.time)}</small>`:""}${esc(ev.title)}${ev.rule&&ev.rule.freq!=="none"?" ↻":""}</button>`;}).join("")
+        +sch.map(i=>`<span class="sched${isDoneIn(i,wk)?" done":""}" style="--bc:var(--c${blockOf(i.block).color})">${esc(i.title)}</span> `).join("");
+      h+=`<div class="pcell" data-act="cell" data-v="${ck}"><div class="ph"><span>${esc(p.name)}</span><span>${fmtHM(p.start)}–${fmtHM(p.end)}</span></div>${chips}${S.view.cell===ck?`<textarea id="cell-edit" data-f="cell" data-v="${ck}" aria-label="${DAYL[d.getDay()]} ${esc(p.name)}">${esc(txt)}</textarea>`:`<div class="txt">${esc(txt).replace(/\n/g,"<br>")}</div>`}</div>`;
+    }
+    h+=`</section>`;
+  }
+  return h+`</div>`;
+}
+function renderEventSheet(){
+  const V=S.view.ev,d=V.draft,r=d.rule||{freq:"none"},sd=parseD(d.start||dkey(new Date()));
+  const saved=V.id&&S.events.get(V.id);
+  let h=`<div class="sheet" data-act="evbg"><div class="inner" role="dialog" aria-label="Event">
+    <h2>${V.id?"Event":"New event"} <button class="btn" data-act="evclose">Close</button></h2>`;
+  if(saved&&V.date){const o=occOf(saved,V.date);
+    h+=`<div class="occ"><h3>${esc(saved.title)}</h3><div class="sum">${DAYL[parseD(V.date).getDay()]}, ${fmtDate(V.date)}${saved.time?" · "+fmtHM(saved.time):""}${saved.location?" · "+esc(saved.location):""}<br>${esc(ruleText(saved))}</div>
+      ${findLinks((saved.notes||"")+" "+(saved.location||"")).length?`<div class="links">${findLinks((saved.notes||"")+" "+(saved.location||"")).map(l=>`<span>${esc(l.v)}<button class="copy" data-act="copy" data-v="${esc(l.v)}">Copy</button></span>`).join("")}</div>`:""}
+      <div class="actions"><button class="btn ${o.done?"":"primary"}" data-act="occdone">${o.done?"Undo done":"Mark done ✓"}</button><button class="btn" data-act="occskip">${o.skip?"Un-skip":"Skip this one"}</button>
+      ${saved.rule&&saved.rule.freq!=="none"?`<button class="btn" data-act="occend">End the series after this</button>`:""}</div>
+      <label class="field"><span>Note for this one only</span><input id="occnote" data-f="occnote" value="${esc(o.note||"")}" placeholder="e.g. moved to 7am, bring the bands"></label></div>`;}
+  if(S.sample)h+=`<div class="panel set"><h3>Describe it</h3><textarea id="evdesc" placeholder="e.g. Training with Lucia every Tue and Thu at 6am until the end of the year" style="width:100%;min-height:60px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);padding:8px">${esc(V.desc||"")}</textarea><div class="actions"><button class="btn" data-act="evparse" ${V.parsing?"disabled":""}>${V.parsing?"Reading…":"Fill in the form for me"}</button></div></div>`;
+  h+=`<div class="panel set"><h3>${V.id?"The whole series":"Details"}</h3>
+    <label class="field"><span>What</span><input id="e-title" data-e="title" value="${esc(d.title)}" placeholder="Training · Lucia"></label>
+    <div class="two"><label class="field"><span>${r.freq==="none"?"Date":"Starts"}</span><input type="date" id="e-start" data-e="start" value="${esc(d.start)}"></label>
+      <label class="field"><span>Time (optional)</span><input type="time" id="e-time" data-e="time" value="${esc(d.time)}"></label></div>
+    ${d.time?"":`<label class="field"><span>Or a time of day</span><select id="e-period" data-e="period">${periods().map(p=>`<option value="${p.id}" ${(d.period||periods()[0].id)===p.id?"selected":""}>${esc(p.name)}</option>`).join("")}</select></label>`}
+    <div class="two"><label class="field"><span>Repeats</span><select id="e-freq" data-e="freq">${[["none","Does not repeat"],["daily","Daily"],["weekdays","Every weekday (Mon–Fri)"],["weekly","Weekly"],["monthly","Monthly"],["yearly","Yearly"]].map(([v,l])=>`<option value="${v}" ${r.freq===v?"selected":""}>${l}</option>`).join("")}</select></label>
+      ${["daily","weekly","monthly"].includes(r.freq)?`<label class="field"><span>Every</span><select id="e-int" data-e="interval">${[1,2,3,4,5,6].map(n=>`<option value="${n}" ${(+r.interval||1)===n?"selected":""}>${n===1?"":n+" "}${r.freq==="daily"?(n===1?"day":"days"):r.freq==="weekly"?(n===1?"week":"weeks"):(n===1?"month":"months")}</option>`).join("")}</select></label>`:"<span></span>"}</div>
+    ${r.freq==="weekly"?`<div class="field"><span>On</span><div class="daypick">${[1,2,3,4,5,6,0].map(i=>`<button aria-pressed="${(r.days&&r.days.length?r.days:[sd.getDay()]).includes(i)}" data-act="evday" data-v="${i}">${DAYN[i].slice(0,3)}</button>`).join("")}</div></div>`:""}
+    ${r.freq==="monthly"?`<label class="field"><span>Which day</span><select id="e-mm" data-e="monthMode"><option value="date" ${r.monthMode!=="nth"?"selected":""}>On the ${ordinal(sd.getDate())}</option><option value="nth" ${r.monthMode==="nth"?"selected":""}>On the ${Math.ceil(sd.getDate()/7)>=5?"last":ordinal(Math.ceil(sd.getDate()/7))} ${DAYL[sd.getDay()]}</option></select></label>`:""}
+    ${r.freq!=="none"?`<div class="two"><label class="field"><span>Ends</span><select id="e-ends" data-e="ends"><option value="never" ${d.ends==="never"?"selected":""}>Never</option><option value="until" ${d.ends==="until"?"selected":""}>On a date</option><option value="count" ${d.ends==="count"?"selected":""}>After a number of times</option></select></label>
+      ${d.ends==="until"?`<label class="field"><span>Last date</span><input type="date" id="e-until" data-e="until" value="${esc(r.until||"")}"></label>`:d.ends==="count"?`<label class="field"><span>Times</span><input type="number" min="1" id="e-count" data-e="count" value="${esc(r.count||10)}"></label>`:"<span></span>"}</div>`:""}
+    <div class="two"><label class="field"><span>Block</span><select id="e-block" data-e="block"><option value="">None</option>${st().blocks.map(b=>`<option value="${b.id}" ${d.block===b.id?"selected":""}>${esc(b.name)}</option>`).join("")}</select></label>
+      <label class="field"><span>Where</span><input id="e-loc" data-e="location" value="${esc(d.location)}" placeholder="Place, address or link"></label></div>
+    <label class="field"><span>Notes</span><textarea id="e-notes" data-e="notes" placeholder="Who, what to bring, phone numbers…">${esc(d.notes)}</textarea></label>
+    <div class="two"><label class="field"><span>Heads-up</span><select id="e-prep" data-e="prepDays">${[0,1,2,3,5,7,14].map(n=>`<option value="${n}" ${((d.prep&&d.prep.days)||0)===n?"selected":""}>${n===0?"None":n===1?"1 day before":n+" days before"}</option>`).join("")}</select></label>
+      ${d.prep&&d.prep.days?`<label class="field"><span>To do</span><input id="e-preptext" data-e="prepText" value="${esc(d.prep.text||"")}" placeholder="Confirm the appointment"></label>`:"<span></span>"}</div>
+    <p class="hint" style="margin:0">${d.start?esc(ruleText(Object.assign({},d,{period:d.period||periods()[0].id}))):""}</p>
+    <div class="actions"><button class="btn primary" data-act="evsave">${V.id?"Save changes":"Add event"}</button>
+      ${V.id?(V.confirm?`<span class="hint">Delete every date in this series?</span><button class="btn danger" data-act="evdel">Delete</button><button class="btn" data-act="evnodel">Keep</button>`:`<button class="btn" data-act="evaskdel">Delete…</button>`):""}</div>
+  </div></div></div>`;
+  return h;
+}
+function weekEvents(wk){
+  const s0=parseD(wk),e=addDays(s0,7),ev=[];
+  for(const it of S.items.values())for(const l of (it.log||[])){const t=new Date(l.t);if(t>=s0&&t<e)ev.push({t,it,text:l.text});}
+  for(const x of S.events.values())for(const [k,o] of Object.entries(x.occ||{})){const t=o.done?new Date(o.done):null;if(t&&t>=s0&&t<e)ev.push({t,it:x,text:"Event done ✓"+(o.note?" · "+o.note:"")});if(o.skip){const ts=new Date(o.skip);if(ts>=s0&&ts<e)ev.push({t:ts,it:x,text:"Skipped "+dayLabel(k)});}}
+  return ev.sort((a,b)=>a.t-b.t);
+}
+function renderJournal(wk){
+  const ev=weekEvents(wk);
+  const tools=`<div class="actions" style="margin-bottom:12px"><button class="btn" data-act="pdf">Save a printable summary (PDF)</button><button class="btn" data-act="copyweek">Copy my week as text</button><span class="hint">The text version pastes into a note, an email, or any AI chat when you want a second opinion.</span></div>`;
+  if(!ev.length)return tools+`<div class="panel"><h3>Journal</h3><p class="hint">Everything you cross off, log or change this week shows up here by day: your record of what you did and when.</p></div>`;
+  const by={};ev.forEach(x=>{(by[dkey(x.t)]=by[dkey(x.t)]||[]).push(x);});
+  let h=tools+`<div class="panel"><h3>Journal</h3>`;
+  for(const k of Object.keys(by).sort()){const d=parseD(k);h+=`<div class="jday"><h4>${DAYL[d.getDay()]} ${d.getMonth()+1}/${d.getDate()}</h4>${by[k].map(x=>`<div class="jrow" style="--bc:var(--c${blockOf(x.it.block).color})"><time>${fmtTime(x.t.toISOString())}</time><span class="dot"></span><span><strong>${esc(x.it.title)}</strong> · ${esc(x.text)}</span></div>`).join("")}</div>`;}
+  return h+`</div>`;
+}
+function renderPatterns(wk){
+  const items=[...S.items.values()];
+  const inWk=itemsForWeek(wk);
+  const doneWk=inWk.filter(i=>isDoneIn(i,wk)).length;
+  const openWk=inWk.filter(i=>!isDoneIn(i,wk)).length;
+  const waiting=items.filter(i=>!i.repeat&&i.status!=="open"&&i.status!=="done");
+  const stuck=inWk.filter(i=>!isDoneIn(i,wk)&&rolling(i,wk)>=3);
+  // completions by weekday, all time
+  const counts=[0,0,0,0,0,0,0];
+  for(const it of items){if(it.doneAt&&!it.repeat)counts[new Date(it.doneAt).getDay()]++;for(const v of Object.values(it.doneWeeks||{}))counts[new Date(v).getDay()]++;}
+  const order=[0,1,2,3,4,5,6].map(i=>(i+st().weekStart)%7);const max=Math.max(1,...counts);const total=counts.reduce((a,b)=>a+b,0);
+  const best=total?order.reduce((a,b)=>counts[b]>counts[a]?b:a,order[0]):null;
+  let h=`<div class="stats"><div class="stat"><b>${doneWk}</b><span>Crossed off</span></div><div class="stat"><b>${openWk}</b><span>Still open</span></div><div class="stat"><b>${waiting.length}</b><span>Waiting on others</span></div><div class="stat"><b>${stuck.length}</b><span>Rolling 3+ weeks</span></div></div><div class="grid2">`;
+  h+=`<div class="panel"><h3>When you finish things</h3><p class="hint" style="margin:0 0 6px">${total?`Across ${total} crossed-off items, <strong>${DAYL[best]}</strong> is your strongest day.`:"Cross a few things off and your best days will show here."}</p><div class="bars">${order.map(i=>`<div class="bar${i===best&&total?" top":""}"><b>${counts[i]}</b><i style="height:${Math.round(counts[i]/max*100)}%"></i><span>${DAYN[i].slice(0,3)}</span></div>`).join("")}</div></div>`;
+  const rolled=inWk.filter(i=>!isDoneIn(i,wk)&&!i.repeat).sort((a,b)=>rolling(b,wk)-rolling(a,wk)).slice(0,6);
+  h+=`<div class="panel"><h3>What keeps rolling</h3>${rolled.length?`<ul class="list">${rolled.map(i=>`<li style="--bc:var(--c${blockOf(i.block).color})"><span class="dot"></span><span>${esc(i.title)}</span><span class="tag roll">wk ${rolling(i,wk)}</span></li>`).join("")}</ul>`:`<p class="hint">Nothing open this week.</p>`}</div>`;
+  h+=`<div class="panel"><h3>Waiting on others</h3>${waiting.length?`<ul class="list">${waiting.sort((a,b)=>ageDays(b.statusSince)-ageDays(a.statusSince)).map(i=>{const ng=nudgeOf(i);return `<li style="--bc:var(--c${blockOf(i.block).color})"><span class="dot"></span><span>${esc(i.title)} <span class="hint">· ${esc(statusOf(i.status).short||statusOf(i.status).label)}</span></span><span class="tag ${ng?"nudge":"wait"}">${ageDays(i.statusSince)}d</span></li>`;}).join("")}</ul>`:`<p class="hint">No one owes you a reply.</p>`}</div>`;
+  h+=`<div class="panel"><h3>This week by block</h3><ul class="list">${st().blocks.map(b=>{const l=inWk.filter(i=>blockOf(i.block).id===b.id);const d=l.filter(i=>isDoneIn(i,wk)).length;return `<li style="--bc:var(--c${b.color});grid-template-columns:110px minmax(0,1fr) 44px"><span>${esc(b.name)}</span><span class="hbar">${l.length?`<i style="width:${d/l.length*100}%;background:var(--c${b.color})"></i>`:""}</span><span class="hint">${d}/${l.length}</span></li>`;}).join("")}</ul></div>`;
+  return h+`</div>`;
+}
+function renderAssist(wk){
+  const a=S.view.assist;
+  if(!S.sample)return `<div class="panel assist"><h3>Assist</h3><p class="hint">Claude can review your week, pick your next moves, draft follow-ups for people you're waiting on, and turn a messy note (like one of your emails to yourself) into RTD items. Open this page in Claude while signed in to use it.</p></div>`;
+  const cap=S.view.capture;
+  return `<div class="grid2">
+   <div class="panel assist"><h3>Ask Claude about this week</h3><div class="actions" style="margin-bottom:10px">
+     <button class="btn" data-act="ask" data-v="review">Review my week</button>
+     <button class="btn" data-act="ask" data-v="next">What should I do next?</button>
+     <button class="btn" data-act="ask" data-v="waiting">Plan my follow-ups</button>
+     ${a.busy?`<button class="btn small" data-act="stop">Stop</button>`:""}</div>
+     <div class="out" id="assist-out">${a.text?md(a.text):`<p class="hint">Pick one. Claude reads this week's blocks, statuses and log notes.</p>`}</div></div>
+   <div class="panel assist"><h3>Turn a note into items</h3>
+     <textarea id="captext" placeholder="Paste an email to yourself, a brain dump, a voice-memo transcript…">${esc(a.captext||"")}</textarea>
+     <div class="actions"><button class="btn primary" data-act="parse" ${a.parsing?"disabled":""}>${a.parsing?"Reading…":"Find the to-dos"}</button></div>
+     ${cap?`<div style="margin-top:10px">${cap.map((c,i)=>`<div class="caprow"><input type="checkbox" id="cap-${i}" data-f="capck" data-v="${i}" ${c.on?"checked":""} aria-label="Include"><label for="cap-${i}"><strong>${esc(c.title)}</strong>${c.next?`<br><span class="hint">Next: ${esc(c.next)}</span>`:""}</label><select id="capb-${i}" data-f="capb" data-v="${i}">${st().blocks.map(b=>`<option value="${b.id}" ${c.block===b.id?"selected":""}>${esc(b.name)}</option>`).join("")}</select></div>`).join("")}<div class="actions" style="margin-top:8px"><button class="btn primary" data-act="capadd">Add ${cap.filter(c=>c.on).length} to my RTD</button><button class="btn" data-act="capclear">Discard</button></div></div>`:""}
+   </div></div>`;
+}
+function renderSettings(){
+  const s=st();
+  const counts={};for(const it of S.items.values())counts[it.block]=(counts[it.block]||0)+1;
+  return `<div class="sheet" data-act="sheetbg"><div class="inner" role="dialog" aria-label="Setup">
+   <h2>Setup <button class="btn" data-act="closeset">Done</button></h2>
+   <div class="panel set"><h3>Blocks</h3><p class="hint" style="margin:0">Your boxes for whatever is on your plate right now. Rename, recolor or reorder them as life changes.</p>
+    ${s.blocks.map((b,i)=>`<div class="setrow" style="--bc:var(--c${b.color})"><button class="swatch" data-act="bcolor" data-v="${i}" aria-label="Change color"></button><input id="bn-${b.id}" data-f="bname" data-v="${i}" value="${esc(b.name)}" aria-label="Block name"><div class="mini"><button data-act="bup" data-v="${i}" aria-label="Move up" ${i===0?"disabled":""}>↑</button><button data-act="bdown" data-v="${i}" aria-label="Move down" ${i===s.blocks.length-1?"disabled":""}>↓</button><button data-act="bdel" data-v="${i}" aria-label="Remove block" title="${counts[b.id]?"Move or delete its items first":"Remove"}" ${counts[b.id]||s.blocks.length===1?"disabled":""}>✕</button></div></div>`).join("")}
+    <div><button class="btn small" data-act="badd">+ Add a block</button></div></div>
+   <div class="panel set"><h3>Statuses</h3><p class="hint" style="margin:0">Open and Done are fixed. Add any waiting state you use. "Nudge after" flags it when there's no reply.</p>
+    <div class="setrow st hint"><span>Short</span><span>Name</span><span>Nudge after</span><span></span></div>
+    ${s.statuses.map((x,i)=>x.fixed?"":`<div class="setrow st"><input id="ss-${x.key}" data-f="sshort" data-v="${i}" value="${esc(x.short)}" aria-label="Short label"><input id="sl-${x.key}" data-f="slabel" data-v="${i}" value="${esc(x.label)}" aria-label="Status name"><input id="snd-${x.key}" type="number" min="0" data-f="snudge" data-v="${i}" value="${x.nudge}" aria-label="Nudge after days"><div class="mini"><button data-act="sdel" data-v="${i}" aria-label="Remove status">✕</button></div></div>`).join("")}
+    <div><button class="btn small" data-act="sadd">+ Add a status</button></div></div>
+   <div class="panel set"><h3>Week</h3><label class="field"><span>Week starts on</span><select id="wstart" data-f="wstart"><option value="1" ${s.weekStart===1?"selected":""}>Monday</option><option value="0" ${s.weekStart===0?"selected":""}>Sunday</option></select></label>
+</div>
+   <div class="panel set"><h3>Time of day</h3><p class="hint" style="margin:0">The blocks each day is split into. Events with a time land in the block that covers it.</p>
+    <div class="setrow pr hint"><span>Name</span><span>From</span><span>To</span><span></span></div>
+    ${s.periods.map((p,i)=>`<div class="setrow pr"><input id="pn-${p.id}" data-f="pname" data-v="${i}" value="${esc(p.name)}" aria-label="Block name"><input type="time" id="ps-${p.id}" data-f="pstart" data-v="${i}" value="${esc(p.start)}" aria-label="Starts"><input type="time" id="pe-${p.id}" data-f="pend" data-v="${i}" value="${esc(p.end)}" aria-label="Ends"><div class="mini"><button data-act="pup" data-v="${i}" aria-label="Move up" ${i===0?"disabled":""}>↑</button><button data-act="pdown" data-v="${i}" aria-label="Move down" ${i===s.periods.length-1?"disabled":""}>↓</button><button data-act="pdel" data-v="${i}" aria-label="Remove" ${s.periods.length<=1?"disabled":""}>✕</button></div></div>`).join("")}
+    <div><button class="btn small" data-act="padd">+ Add a time block</button></div></div>
+   <div class="panel set"><h3>Sync your iPhone and MacBook</h3>
+    ${Sync.on()?`<p style="margin:0"><strong>Sync is on.</strong> ${esc(syncLabel())}. Your RTD is kept in a secret file in your GitHub account.</p>
+      ${Sync.err?`<p class="hint" style="color:var(--nudge);margin:0">${esc(Sync.err)}</p>`:""}
+      <div class="actions"><button class="btn" data-act="syncnow">Sync now</button><button class="btn" data-act="syncoff">Turn off sync on this device</button></div>`
+    :`<p class="hint" style="margin:0">Right now everything is saved on this device only. To see the same RTD on every device, connect it to your GitHub account once on each device. It's free. Your data goes in a secret file in your GitHub account: it never shows up publicly, though anyone given its exact link could read it, so keep passwords out of your RTD.</p>
+      <ol class="hint" style="margin:0;padding-left:20px;display:grid;gap:4px"><li>Open <a href="https://github.com/settings/tokens/new?scopes=gist&description=RTD%20sync" target="_blank" rel="noopener">this GitHub page</a> (it's pre-filled).</li><li>Set <strong>Expiration</strong> to "No expiration", leave only <strong>gist</strong> ticked, and tap <strong>Generate token</strong>.</li><li>Copy the token (starts with <code>ghp_</code>) and paste it here. Use the same token on your other devices.</li></ol>
+      ${Sync.err?`<p class="hint" style="color:var(--nudge);margin:0">${esc(Sync.err)}</p>`:""}
+      <form class="logadd" data-act="syncform"><input id="synctoken" type="password" autocomplete="off" placeholder="Paste your GitHub token" aria-label="GitHub token"><button class="btn primary" ${Sync.state==="busy"?"disabled":""}>${Sync.state==="busy"?"Connecting…":"Connect"}</button></form>
+      <p class="hint" style="margin:0">If this is your second device, connecting loads the RTD you already have and replaces what's on this device.</p>`}
+   </div>
+   <div class="panel set"><h3>Backup</h3><p class="hint" style="margin:0">Save everything as one file you can keep anywhere, or load a backup back in.</p>
+    <div class="actions"><button class="btn" data-act="export">Export backup</button><label class="btn" for="importfile" style="cursor:pointer">Import backup…</label><input type="file" id="importfile" accept=".json,application/json" hidden></div>
+    ${S.view.importPending?`<div class="banner" style="margin:0"><span>Replace everything on this device with the backup from ${esc(S.view.importPending.when)}?</span><span class="actions"><button class="btn small danger" data-act="importyes">Replace</button><button class="btn small" data-act="importno">Cancel</button></span></div>`:""}
+   </div>
+  </div></div>`;
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click",e=>{
+  const el=e.target.closest("[data-act]");if(!el||el.tagName==="FORM")return;
+  const act=el.dataset.act,id=el.dataset.id,v=el.dataset.v;
+  if((act==="sheetbg"||act==="evbg")&&e.target!==el)return;
+  const V=S.view.ev,sv=V&&V.id?S.events.get(V.id):null;
+  if(el.tagName==="A")return;
+  const it=id?S.items.get(id):null;const mine=it?clone(it):null;
+  switch(act){
+    case "tab":S.view.tab=v;S.view.cell=null;break;
+    case "prev":S.view.wk=dkey(addDays(parseD(curWk()),-7));break;
+    case "nextwk":S.view.wk=dkey(addDays(parseD(curWk()),7));break;
+    case "today":S.view.wk=null;S.view.day=dkey(new Date());break;
+    case "nudges":S.view.tab="patterns";break;
+    case "settings":S.view.settings=true;break;
+    case "closeset":case "sheetbg":S.view.settings=false;break;
+    case "open":S.view.open=S.view.open===id?null:id;S.view.confirm=null;break;
+    case "close":S.view.open=null;break;
+    case "done":e.stopPropagation();toggleDone(mine);break;
+    case "log":addLog(mine,v);if(v==="lvm"&&mine.status==="open"&&st().statuses.some(s=>s.key==="wcb")){mine.status="wcb";mine.statusSince=nowISO();addLog(mine,"Status → wcb");}saveItem(mine);break;
+    case "askdel":S.view.confirm=id;break;
+    case "nodel":S.view.confirm=null;break;
+    case "del":deleteItem(id);S.view.open=null;S.view.confirm=null;toast("Deleted");break;
+    case "copy":try{navigator.clipboard.writeText(v).then(()=>toast("Copied"),()=>toast("Select the text to copy it"));}catch(_){toast("Select the text to copy it");}return;
+    case "clearex":for(const x of [...S.items.values()])if(x.example)deleteItem(x.id);for(const x of [...S.events.values()])if(x.example)deleteEvent(x.id);toast("Examples cleared");break;
+    case "newev":S.view.ev={id:null,date:null,draft:newEventDraft(v)};break;
+    case "ev":{const x=S.events.get(id);if(!x)return;const d=clone(x);d.rule=d.rule||{freq:"none"};d.ends=d.rule.until?"until":d.rule.count?"count":"never";S.view.ev={id,date:v,draft:d};break;}
+    case "evclose":case "evbg":S.view.ev=null;break;
+    case "evday":{const r=V.draft.rule;const sdw=parseD(V.draft.start).getDay();let ds=(r.days&&r.days.length)?r.days.slice():[sdw];const n=+v;ds=ds.includes(n)?ds.filter(x=>x!==n):[...ds,n];if(!ds.length)ds=[n];r.days=ds;break;}
+    case "occdone":{const o=occOf(sv,V.date);setOcc(sv,V.date,{done:o.done?null:nowISO(),skip:null});toast(o.done?"Marked not done":"Done ✓");break;}
+    case "occskip":{const o=occOf(sv,V.date);setOcc(sv,V.date,{skip:o.skip?null:nowISO(),done:null});toast(o.skip?"Back on":"Skipped this one");break;}
+    case "occend":{const x=clone(sv);x.rule=Object.assign({},x.rule,{until:V.date});delete x.rule.count;saveEvent(x);V.draft.rule=clone(x.rule);V.draft.ends="until";toast("The series now ends "+fmtDate(V.date));break;}
+    case "prepdone":{const x=S.events.get(id);if(x)setOcc(x,v,{prepDone:nowISO()});break;}
+    case "evsave":commitEvent();break;
+    case "evaskdel":V.confirm=true;break;
+    case "evnodel":V.confirm=false;break;
+    case "evdel":deleteEvent(V.id);S.view.ev=null;toast("Event deleted");break;
+    case "evparse":parseEvent();return;
+    case "pup":case "pdown":{const p=st().periods,i=+v,j=act==="pup"?i-1:i+1;[p[i],p[j]]=[p[j],p[i]];saveSettings();break;}
+    case "pdel":st().periods.splice(+v,1);saveSettings();break;
+    case "padd":{const p=st().periods;const last=p[p.length-1];p.push({id:"p"+uid().slice(0,6),name:"New block",start:last?last.end:"12:00",end:"02:00"});saveSettings();break;}
+    case "pdf":makePdf();return;
+    case "copyweek":{const txt="My running to-do list (RTD). Help me think it through.\n\n"+weekContext(curWk());try{navigator.clipboard.writeText(txt).then(()=>toast("Week copied. Paste it anywhere."),()=>toast("Couldn't copy on this device"));}catch(_){toast("Couldn't copy on this device");}return;}
+    case "syncnow":Sync.run();return;
+    case "syncoff":Sync.disconnect();toast("Sync is off on this device. Your data stays here.");return;
+    case "export":saveFile(`RTD backup ${dkey(new Date())}.json`,serialize());toast("Backup saved");return;
+    case "importyes":adopt(S.view.importPending.data);S.view.importPending=null;if(Sync.on())Sync.soon();toast("Backup loaded");break;
+    case "importno":S.view.importPending=null;break;
+    case "pickday":S.view.day=v;break;
+    case "cell":if(S.view.cell===v)return;S.view.cell=v;break;
+    case "followup":followUp(id);return;
+    case "ask":ask(v);return;
+    case "stop":if(S.view.assist.ctl)S.view.assist.ctl.abort();return;
+    case "parse":parseCapture();return;
+    case "capadd":{const cap=S.view.capture||[];let n=0;for(const c of cap)if(c.on){const ni=newItem(c.title,c.block);if(c.next||c.notes){ni.next=c.next||"";ni.notes=c.notes||"";saveItem(ni);}n++;}S.view.capture=null;S.view.assist.captext="";S.view.tab="list";toast(n+" added");break;}
+    case "capclear":S.view.capture=null;break;
+    case "bcolor":st().blocks[+v].color=(st().blocks[+v].color+1)%COLORS;saveSettings();break;
+    case "bup":case "bdown":{const b=st().blocks,i=+v,j=act==="bup"?i-1:i+1;[b[i],b[j]]=[b[j],b[i]];saveSettings();break;}
+    case "bdel":st().blocks.splice(+v,1);saveSettings();break;
+    case "badd":{const used=st().blocks.map(b=>b.color);st().blocks.push({id:"b"+uid().slice(0,6),name:"New block",color:[0,1,2,3,4,5,6,7].find(c=>!used.includes(c))??0});saveSettings();break;}
+    case "sdel":{const k=st().statuses[+v].key;for(const x of S.items.values())if(x.status===k){const c=clone(x);c.status="open";c.statusSince=nowISO();addLog(c,"Status → open");saveItem(c);}st().statuses.splice(+v,1);saveSettings();break;}
+    case "sadd":{const s=st().statuses;s.splice(s.length-1,0,{key:"s"+uid().slice(0,6),label:"Waiting on…",short:"w?",nudge:5});saveSettings();break;}
+    case "ladd":{const k="l"+uid().slice(0,6);const o={};HOURS.forEach(h=>o[h]=2);st().layouts[k]={label:"New layout",sizes:o};saveSettings();break;}
+    default:return;
+  }
+  render();
+});
+document.addEventListener("submit",e=>{
+  e.preventDefault();const f=e.target,act=f.dataset.act;
+  if(act==="capture"){const inp=$("#cap");const b=$("#capblock").value;S.view.quickBlock=b;if(!inp.value.trim())return;newItem(inp.value,b);inp.value="";toast("Added to "+blockOf(b).name);render();$("#cap")&&$("#cap").focus();}
+  if(act==="addline"){const inp=f.querySelector("input");if(!inp.value.trim())return;newItem(inp.value,f.dataset.b);inp.value="";render();const n=document.getElementById(inp.id);n&&n.focus();}
+  if(act==="syncform"){const v=$("#synctoken").value.trim();if(!v){toast("Paste your token first");return;}Sync.connect(v);return;}
+  if(act==="logform"){const inp=f.querySelector("input");if(!inp.value.trim())return;const it=clone(S.items.get(f.dataset.id));addLog(it,inp.value.trim());saveItem(it);inp.value="";render();}
+});
+function commitEvent(){
+  const V=S.view.ev,d=clone(V.draft);
+  if(!String(d.title||"").trim()){toast("Give the event a name");return;}
+  if(!d.start){toast("Pick a date");return;}
+  const r=d.rule||{freq:"none"};r.interval=Math.max(1,+r.interval||1);
+  if(r.freq==="weekly"&&!(r.days&&r.days.length))r.days=[parseD(d.start).getDay()];
+  if(r.freq!=="weekly")delete r.days;
+  if(d.ends!=="until"||r.freq==="none")delete r.until;
+  if(d.ends!=="count"||r.freq==="none")delete r.count;
+  if(d.time)d.period="";else if(!d.period)d.period=periods()[0].id;
+  delete d.ends;d.rule=r;d.title=d.title.trim();
+  if(V.id){d.occ=(S.events.get(V.id)||{}).occ||{};}else{d.id=uid();d.created=nowISO();d.occ={};}
+  saveEvent(d);S.view.ev=null;toast(V.id?"Event updated":"Event added");
+}
+async function parseEvent(){
+  const V=S.view.ev;const txt=(V.desc||"").trim();if(!txt){toast("Describe the event first");return;}
+  V.parsing=true;render();const t=new Date();
+  try{
+    const o=await S.sample.json(`Today is ${DAYL[t.getDay()]} ${dkey(t)}. Turn this description into a calendar event. Reply with only a JSON object: {"title": string, "start": "YYYY-MM-DD" (the first date it happens, on or after today unless stated), "time": "HH:MM" 24-hour or "", "period": one of ${JSON.stringify(periods().map(p=>p.id+"="+p.name))} ids or "" (use only when there is no clock time), "freq": "none"|"daily"|"weekdays"|"weekly"|"monthly"|"yearly", "interval": number (1 = every), "days": weekday numbers 0=Sunday..6=Saturday for weekly, "monthMode": "date"|"nth", "until": "YYYY-MM-DD" or "", "count": number or 0, "location": string, "notes": string, "prepDays": number of days before to get a heads-up or 0, "prepText": string}.\n\nDescription: ${txt.slice(0,2000)}`,{modelTier:"quick"});
+    if(o&&typeof o==="object"){const d=V.draft;
+      if(o.title)d.title=String(o.title);if(/^\d{4}-\d{2}-\d{2}$/.test(o.start||""))d.start=o.start;
+      d.time=/^\d{2}:\d{2}$/.test(o.time||"")?o.time:"";if(o.period&&periods().some(p=>p.id===o.period))d.period=o.period;
+      const fr=["none","daily","weekdays","weekly","monthly","yearly"].includes(o.freq)?o.freq:"none";
+      d.rule={freq:fr,interval:Math.max(1,parseInt(o.interval)||1),days:Array.isArray(o.days)?o.days.map(Number).filter(n=>n>=0&&n<7):[],monthMode:o.monthMode==="nth"?"nth":"date"};
+      if(/^\d{4}-\d{2}-\d{2}$/.test(o.until||"")){d.rule.until=o.until;d.ends="until";}else if(+o.count>0){d.rule.count=+o.count;d.ends="count";}else d.ends="never";
+      if(o.location)d.location=String(o.location);if(o.notes)d.notes=String(o.notes);
+      d.prep=+o.prepDays>0?{days:+o.prepDays,text:String(o.prepText||"Get ready")}:null;
+      toast("Filled in. Check it, then add it.");}
+  }catch(e){toast(errCopy(e.code));}
+  V.parsing=false;render();
+}
+async function makePdf(){
+  if(!window.jspdf||!window.jspdf.jsPDF){toast("The PDF maker didn't load. Reload the page and try again.");return;}
+  const {jsPDF}=window.jspdf;const doc=new jsPDF({unit:"pt",format:"letter"});
+  const W=612,H=792,M=50;let y=M;
+  const clean=s=>String(s||"").replace(/[^\x20-\x7E -ÿ–—‘’“”•]/g,"");
+  const put=(txt,o={})=>{const size=o.size||10;doc.setFont("helvetica",o.bold?"bold":"normal");doc.setFontSize(size);const c=o.color||[24,32,46];doc.setTextColor(c[0],c[1],c[2]);
+    for(const l of doc.splitTextToSize(clean(txt),W-2*M-(o.indent||0))){if(y>H-M){doc.addPage();y=M;}doc.text(l,M+(o.indent||0),y);
+      if(o.strike){const w=doc.getTextWidth(l);doc.setDrawColor(53,82,196);doc.setLineWidth(1.1);doc.line(M+(o.indent||0),y-size*0.32,M+(o.indent||0)+w,y-size*0.32);}y+=size*1.3;}
+    y+=(o.after||0);};
+  const wk=curWk(),s0=parseD(wk),e6=addDays(s0,6),thu=addDays(s0,(4-st().weekStart+7)%7);
+  put(`RTD  ·  Week ${isoWeek(thu)}`,{size:22,bold:true});
+  put(`${MON[s0.getMonth()]} ${s0.getDate()} – ${MON[e6.getMonth()]} ${e6.getDate()}, ${e6.getFullYear()}   ·   printed ${fmtShort(nowISO())}`,{size:10,color:[91,102,120],after:12});
+  const evDays=[0,1,2,3,4,5,6].map(i=>dkey(addDays(s0,i))).filter(k=>eventsOn(k).length);
+  if(evDays.length){put("EVENTS",{size:12,bold:true,after:2});
+    for(const k of evDays){const d=parseD(k);put(`${DAYL[d.getDay()]} ${d.getMonth()+1}/${d.getDate()}`,{size:10,bold:true,indent:6});
+      for(const ev of eventsOn(k)){const o=occOf(ev,k);put(`${ev.time?fmtHM(ev.time):periodName(evPeriod(ev))}   ${ev.title}${ev.location?"  –  "+ev.location:""}${o.skip?"  (skipped)":""}`,{indent:18,strike:!!(o.done||o.skip)});}}
+    y+=8;}
+  const items=itemsForWeek(wk);
+  for(const b of st().blocks){const l=sortItems(items.filter(i=>blockOf(i.block).id===b.id),wk);if(!l.length)continue;
+    put(b.name.toUpperCase(),{size:12,bold:true,after:2});
+    for(const i of l){const done=isDoneIn(i,wk),rl=rolling(i,wk);const s=statusOf(i.status);
+      put(`${done?"[x]":"[  ]"}  ${i.title}${!done&&i.status!=="open"&&!i.repeat?`  (${s.short||s.label} ${ageDays(i.statusSince)}d)`:""}${!done&&rl>1?`  (wk ${rl})`:""}`,{indent:6,strike:done});
+      if(i.next&&!done)put(`Next: ${i.next}`,{indent:26,size:9,color:[91,102,120]});}
+    y+=8;}
+  const waiting=[...S.items.values()].filter(i=>!i.repeat&&i.status!=="open"&&i.status!=="done");
+  if(waiting.length){put("WAITING ON OTHERS",{size:12,bold:true,after:2});for(const i of waiting)put(`•  ${i.title}  –  ${statusOf(i.status).label}, ${ageDays(i.statusSince)} days`,{indent:6});y+=8;}
+  const note=weekDoc(wk).note;if(note&&note.trim()){put("WEEK NOTES",{size:12,bold:true,after:2});put(note,{indent:6});}
+  try{await S.downloads.save({filename:`RTD Week ${isoWeek(thu)}.pdf`,data:doc.output("blob")});toast("Summary saved");}
+  catch(e){if(e&&e.code!=="declined")toast("Couldn't save the PDF here.");}
+}
+document.addEventListener("change",e=>{
+  const el=e.target;
+  if(el.id==="importfile"&&el.files&&el.files[0]){const fr=new FileReader();fr.onload=()=>{try{const o=JSON.parse(fr.result);if(!o.settings)throw 0;S.view.importPending={data:o,when:el.files[0].name.replace(/\.json$/,"")};render();}catch(_){toast("That file isn't an RTD backup");}};fr.readAsText(el.files[0]);return;}
+  if(el.dataset.e&&S.view.ev){const d=S.view.ev.draft,k=el.dataset.e,val=el.value;d.rule=d.rule||{freq:"none"};
+    switch(k){
+      case "freq":d.rule.freq=val;if(val==="weekly"&&!(d.rule.days&&d.rule.days.length))d.rule.days=[parseD(d.start).getDay()];if(!d.ends)d.ends="never";break;
+      case "interval":d.rule.interval=+val;break;
+      case "monthMode":d.rule.monthMode=val;break;
+      case "until":d.rule.until=val;break;
+      case "count":d.rule.count=Math.max(1,parseInt(val)||1);break;
+      case "ends":d.ends=val;if(val==="count"&&!d.rule.count)d.rule.count=10;break;
+      case "prepDays":d.prep=+val?{days:+val,text:(d.prep&&d.prep.text)||"Get ready"}:null;break;
+      case "prepText":if(d.prep)d.prep.text=val;break;
+      default:d[k]=val;
+    }
+    if(["freq","ends","prepDays","time","start","interval","monthMode"].includes(k))render();
+    return;}
+  const f=el.dataset.f;if(!f)return;const v=el.dataset.v;
+  const it=el.dataset.id&&S.items.get(el.dataset.id)?clone(S.items.get(el.dataset.id)):null;
+  switch(f){
+    case "title":if(!el.value.trim())return;it.title=el.value.trim();saveItem(it);break;
+    case "notes":it.notes=el.value;saveItem(it);break;
+    case "next":it.next=el.value.trim();saveItem(it);break;
+    case "status":setStatus(it,el.value);break;
+    case "block":it.block=el.value;addLog(it,"Moved to "+blockOf(el.value).name);saveItem(it);break;
+    case "sdate":if(!el.value){delete it.sched;}else{it.sched={date:el.value,period:$("#f-sh-"+it.id).value};}saveItem(it);break;
+    case "speriod":{const sel=$("#f-sd-"+it.id);if(!sel.value)return;it.sched={date:sel.value,period:el.value};saveItem(it);break;}
+    case "occnote":{const V=S.view.ev,sv=V&&S.events.get(V.id);if(sv)setOcc(sv,V.date,{note:el.value.trim()});return;}
+    case "pname":st().periods[+v].name=el.value.trim()||"Block";saveSettings();break;
+    case "pstart":if(el.value){st().periods[+v].start=el.value;saveSettings();}break;
+    case "pend":if(el.value){st().periods[+v].end=el.value;saveSettings();}break;
+    case "repeat":it.repeat=el.checked;if(it.repeat){it.status="open";it.doneAt=null;it.doneWeeks=it.doneWeeks||{};addLog(it,"Set to repeat weekly");}else addLog(it,"Stopped repeating");saveItem(it);break;
+    case "weeknote":{const w=clone(weekDoc(curWk()));w.note=el.value;saveWeek(curWk(),w);return;}
+    case "cell":{const w=clone(weekDoc(curWk()));w.grid=w.grid||{};if(el.value.trim())w.grid[v]=el.value;else delete w.grid[v];saveWeek(curWk(),w);return;}
+    case "daytype":{const w=clone(weekDoc(curWk()));w.dayType=w.dayType||{};w.dayType[v]=el.value;saveWeek(curWk(),w);break;}
+    case "capck":S.view.capture[+v].on=el.checked;break;
+    case "capb":S.view.capture[+v].block=el.value;return;
+    case "bname":if(el.value.trim()){st().blocks[+v].name=el.value.trim();saveSettings();}break;
+    case "sshort":st().statuses[+v].short=el.value.trim();saveSettings();break;
+    case "slabel":st().statuses[+v].label=el.value.trim()||"Waiting";saveSettings();break;
+    case "snudge":st().statuses[+v].nudge=Math.max(0,parseInt(el.value)||0);saveSettings();break;
+    case "wstart":st().weekStart=+el.value;saveSettings();S.view.wk=null;break;
+    case "dday":st().dayDefaults[v]=el.value;saveSettings();break;
+    case "lname":st().layouts[v].label=el.value.trim()||"Layout";saveSettings();break;
+    case "lsize":st().layouts[v].sizes[el.dataset.h]=+el.value;saveSettings();break;
+    default:return;
+  }
+  scheduleRender();
+});
+document.addEventListener("input",e=>{if(e.target.id==="captext")S.view.assist.captext=e.target.value;if(e.target.id==="evdesc"&&S.view.ev)S.view.ev.desc=e.target.value;if(e.target.id==="e-title"&&S.view.ev)S.view.ev.draft.title=e.target.value;});
+document.addEventListener("focusout",e=>{if(e.target.id==="cell-edit"){setTimeout(()=>{S.view.cell=null;pending=false;render();},0);}});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(S.view.ev){S.view.ev=null;render();}else if(S.view.settings){S.view.settings=false;render();}else if(S.view.cell){e.target.blur();}else if(S.view.open){S.view.open=null;render();}}});
+
+/* ---------- Claude assist ---------- */
+function weekContext(wk){
+  const items=itemsForWeek(wk);const today=new Date();
+  let t=`Today is ${DAYL[today.getDay()]} ${dkey(today)}. Week starting ${wk}.\n`;
+  const s0=parseD(wk);const evl=[];for(let i=0;i<7;i++){const k=dkey(addDays(s0,i));for(const ev of eventsOn(k)){const o=occOf(ev,k);evl.push(`- ${dayLabel(k)} ${ev.time?fmtHM(ev.time):periodName(evPeriod(ev))}: ${ev.title}${o.done?" (done)":o.skip?" (skipped)":""}`);}}
+  if(evl.length)t+=`\n## Events this week\n${evl.join("\n")}\n`;
+  for(const b of st().blocks){const l=items.filter(i=>blockOf(i.block).id===b.id);if(!l.length)continue;t+=`\n## ${b.name}\n`;
+    for(const i of l){const s=isDoneIn(i,wk)?"crossed off":i.repeat?"open (repeats weekly)":statusOf(i.status).label+(i.status!=="open"?` for ${ageDays(i.statusSince)} days`:"");
+      t+=`- ${i.title} [${s}${rolling(i,wk)>1?`, carried ${rolling(i,wk)} weeks`:""}]${i.next?` · next: ${i.next}`:""}${i.notes?` · notes: ${i.notes.replace(/\n/g,"; ").slice(0,240)}`:""}${i.log&&i.log.length?` · recent log: ${i.log.slice(-3).map(l=>fmtShort(l.t)+" "+l.text).join("; ")}`:""}\n`;}}
+  return t;
+}
+const PROMPTS={
+  review:"Review this person's week from their running to-do list. In under 200 words: what got crossed off, what's stalling (items carried several weeks), who they're waiting on, and one honest observation about their patterns. Use short bullets under 3 bold headings. Plain, direct, coach-to-coach tone.",
+  next:"From this running to-do list, pick the 3 next actions that would move things most today. For each: the item, the concrete next step, and why now, in one line each. Favor stalled items and anything waiting too long. Under 120 words, a numbered list, no preamble.",
+  waiting:"List every item where this person is waiting on someone. For each, suggest the follow-up move (text, call, email, or give it more time) and a one-line message they could send. Under 200 words, bullets, no preamble."
+};
+async function ask(kind){
+  const a=S.view.assist;if(a.ctl)a.ctl.abort();
+  a.ctl=new AbortController();a.busy=true;a.text="Thinking…";render();
+  try{const{text}=await S.sample(PROMPTS[kind]+"\n\nThe list:\n"+weekContext(curWk()),{signal:a.ctl.signal,cache:false,onText:({text})=>{a.text=text;const o=$("#assist-out");if(o)o.innerHTML=md(text);}});a.text=text;}
+  catch(e){a.text=e.text||"";if(e.code!=="cancelled")a.text+=(a.text?"\n\n":"")+errCopy(e.code);}
+  a.busy=false;a.ctl=null;render();
+}
+async function followUp(id){
+  const it=S.items.get(id);if(!it)return;S.view.draft[id]={busy:true,text:""};render();
+  const p=`Write a short, friendly follow-up text message (2 to 3 sentences) this person can send. They are ${statusOf(it.status).label.toLowerCase()} for ${ageDays(it.statusSince)} days.\nItem: ${it.title}\nNext action: ${it.next||"-"}\nNotes: ${it.notes||"-"}\nLog: ${(it.log||[]).slice(-5).map(l=>fmtShort(l.t)+" "+l.text).join("; ")}\nReply with only the message text, no quotes, no sign-off name.`;
+  try{const{text}=await S.sample(p,{modelTier:"quick",cache:false,onText:({text})=>{S.view.draft[id].text=text;const o=document.getElementById("draft-"+id);if(o)o.textContent=text;}});S.view.draft[id]={text};}
+  catch(e){S.view.draft[id]={text:errCopy(e.code)};}
+  render();
+}
+async function parseCapture(){
+  const a=S.view.assist;const txt=(a.captext||"").trim();if(!txt){toast("Paste some text first");return;}
+  a.parsing=true;render();
+  const names=st().blocks.map(b=>b.name);
+  try{
+    const out=await S.sample.json(`Turn this text into to-do items for a running to-do list. Blocks: ${JSON.stringify(names)}. Reply with only a JSON array of objects {"title": short item name, "block": one of the block names exactly, "next": the very next physical step or "", "notes": who/where/why details or ""}. Skip anything that isn't something to do.\n\nText:\n${txt.slice(0,8000)}`,{modelTier:"quick"});
+    const arr=Array.isArray(out)?out:[];
+    S.view.capture=arr.filter(x=>x&&x.title).slice(0,25).map(x=>({title:String(x.title).slice(0,140),next:String(x.next||""),notes:String(x.notes||""),block:(st().blocks.find(b=>b.name.toLowerCase()===String(x.block||"").toLowerCase())||st().blocks[0]).id,on:true}));
+    if(!S.view.capture.length){S.view.capture=null;toast("No to-dos found in that text");}
+  }catch(e){toast(errCopy(e.code));}
+  a.parsing=false;render();
+}
+function errCopy(c){return({not_granted:"Claude isn't allowed on this page. You can turn it on from the page's permissions.",rate_limited:"Claude is busy for you right now. Try again in a bit.",session_expired:"Sign in to Claude again, then retry.",sampling_disabled:"Claude isn't available on this account.",invalid_json:"Claude's answer didn't come back in a usable shape. Try again."})[c]||"Something went wrong reaching Claude. Try again.";}
+
+/* ---------- boot ---------- */
+function bootLocal(){S.mode="local";if(!loadLocal()){S.settings=defaultSettings(true);for(const it of exampleItems(S.settings))S.items.set(it.id,it);for(const ev of exampleEvents(S.settings))S.events.set(ev.id,ev);saveLocal();}S.loaded=true;render();}
+function boot(){
+  S.downloads={save:async({filename,data})=>{await saveFile(filename,data);return {status:"saved"};}};
+  bootLocal();
+  if(Sync.on()){Sync.state="ok";Sync.run();}
+  // pick up changes from your other devices whenever you come back to the app
+  document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")Sync.run();});
+  window.addEventListener("online",()=>Sync.run());
+  setInterval(()=>{if(document.visibilityState==="visible")Sync.run();},120000);
+  // the day changes while the app sits open
+  let day=dkey(new Date());setInterval(()=>{const d=dkey(new Date());if(d!==day){day=d;scheduleRender();}},60000);
+  if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+async function bootClaude(){
+  const c=window.claude;
+  if(!c||!c.use){bootLocal();return;}
+  // show something right away while the store connects
+  const fallback=setTimeout(()=>{if(!S.settings)bootLocal();},12000);
+  let db=null,user=null,sample=null,downloads=null;
+  try{[db,user,sample,downloads]=await Promise.all([c.use("db"),c.use("user"),c.use("sample"),c.use("downloads")]);}catch(e){}
+  S.sample=sample||null;S.downloads=downloads||null;
+  let id=null;try{id=user?await user.id():null;S.isOwner=user?(await user.isOwner()):true;}catch(e){}
+  if(!db||!id){clearTimeout(fallback);if(!S.settings)bootLocal();else render();return;}
+  S.db=db;S.uid=id;S.mode="db";
+  let seeded=false,migrated=false;
+  db.collection("data/users/"+id).limit(1000).onSnapshot(snap=>{
+    clearTimeout(fallback);
+    let settings=null;const items=new Map(),weeks=new Map(),events=new Map();
+    for(const d of snap.docs){const v=d.data();if(!v)continue;if(d.id==="settings")settings=clone(v);else if(d.id.startsWith("item_"))items.set(v.id,clone(v));else if(d.id.startsWith("event_"))events.set(v.id,clone(v));else if(d.id.startsWith("week_"))weeks.set(d.id.slice(5),clone(v));}
+    if(!settings){if(snap.metadata.fromCache)return;if(!seeded){seeded=true;S.items=new Map();S.events=new Map();S.weeks=new Map();seed();render();}return;}
+    S.settings=settings;S.items=items;S.events=events;S.weeks=weeks;S.loaded=true;
+    if(!migrated&&!snap.metadata.fromCache){migrated=true;migrate();}
+    else if(!S.settings.periods)S.settings.periods=defaultPeriods();
+    scheduleRender();
+  },err=>{if(!S.settings){S.mode="local";bootLocal();}toast("Lost the connection to your saved RTD.");});
+}
+boot();
+})();
+</script>
+
+</body>
+</html>
